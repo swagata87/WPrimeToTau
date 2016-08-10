@@ -112,6 +112,9 @@ private:
   double calcMT(TLorentzVector part1, TLorentzVector part2);
   double calcMT(TLorentzVector part1, const pat::MET part2);
   double calcMT(TLorentzVector part1, const pat::MET part2, pat::MET::METUncertainty metUncert);
+  std::unordered_map< std::string,pat::MET::METUncertainty > mSyst;
+  std::unordered_map< std::string,TH1D* > mSystHist;
+  virtual void SetSystMap();
 
   // ----------member data ---------------------------
   edm::LumiReWeighting LumiWeights_;
@@ -889,7 +892,12 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
        ///testing new way to get systematics
        //std::cout << nGoodTau << std::endl;
        if (nGoodTau==1)  {
-
+            for (int i=1;i<=14;i++){
+                if ( (PassFinalCuts(tau_NoShift,met,mSyst[std::to_string(i)] ) == true) ) {
+                 //std::cout << "*metUncert_JetEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
+                 mSystHist[std::to_string(i)]->Fill(calcMT(tau_NoShift,met,mSyst[std::to_string(i)]),final_weight);
+               }
+            }/*
                if ( (PassFinalCuts(tau_NoShift,met,pat::MET::JetEnUp ) == true) ) {
              //std::cout << "*metUncert_JetEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
              //double MT_metUncert_JetEnUp = sqrt(2*tau_pt[0]*met_val_JetEnUp*(1- cos(dphi_tau_met)));  // always use the same dphi? or shifted dphi?
@@ -961,7 +969,7 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
                if ( (PassFinalCuts(tau_NoShift,met,pat::MET::UnclusteredEnDown ) == true) ) {
              //std::cout << "*metUncert_UnclusteredEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
              h1_MT_Stage1_metUncert_UnclusteredEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::UnclusteredEnDown),final_weight);
-               }
+               }*/
                ///--Tau Scale--///
            }
            if (nGoodTau_ScaleUp==1){
@@ -1214,6 +1222,7 @@ MiniAODAnalyzer::beginJob()
   mytree->Branch("event_evtNo",  &Event, "event_evtNo/I");
   //mytree->Branch("num_PU_vertices",&num_PU_vertices,"num_PU_vertices/I");
   Create_Trees();
+  SetSystMap();
 
   helper->CreateHistoUnchangedName("h_counters", 10, 0, 11, "N_{events}");
 }
@@ -1399,6 +1408,8 @@ void MiniAODAnalyzer::Fill_Tree(){
     }*/
     //helper.Tree_Filler("slimtree");
 }
+
+
 void MiniAODAnalyzer::Fill_QCD_Tree(bool iso){
 
     // testing stuff
@@ -1512,6 +1523,39 @@ double MiniAODAnalyzer::calcMT(TLorentzVector part1, const pat::MET part2, pat::
     double mm = 2 * part1.Pt() * part2.shiftedPt(metUncert) * ( 1. - cos(deltaPhi(part1.Phi(),part2.shiftedPhi(metUncert)) ));
     return sqrt(mm);
 }
+
+
+void MiniAODAnalyzer::SetSystMap(){
+  mSyst["1"]=pat::MET::JetEnUp;
+  mSystHist["1"]=h1_MT_Stage1_metUncert_JetEnUp_new;
+  mSyst["2"]=pat::MET::JetEnDown;
+  mSystHist["2"]=h1_MT_Stage1_metUncert_JetEnDown_new;
+  mSyst["3"]=pat::MET::JetResUp;
+  mSystHist["3"]=h1_MT_Stage1_metUncert_JetResUp_new;
+  mSyst["4"]=pat::MET::JetResDown;
+  mSystHist["4"]=h1_MT_Stage1_metUncert_JetResDown_new;
+  mSyst["5"]=pat::MET::MuonEnUp;
+  mSystHist["5"]=h1_MT_Stage1_metUncert_MuonEnUp_new;
+  mSyst["6"]=pat::MET::MuonEnDown;
+  mSystHist["6"]=h1_MT_Stage1_metUncert_MuonEnDown_new;
+  mSyst["7"]=pat::MET::ElectronEnUp;
+  mSystHist["7"]=h1_MT_Stage1_metUncert_ElectronEnUp_new;
+  mSyst["8"]=pat::MET::ElectronEnDown;
+  mSystHist["8"]=h1_MT_Stage1_metUncert_ElectronEnDown_new;
+  mSyst["9"]=pat::MET::TauEnUp;
+  mSystHist["9"]=h1_MT_Stage1_metUncert_TauEnUp_new;
+  mSyst["10"]=pat::MET::TauEnDown;
+  mSystHist["10"]=h1_MT_Stage1_metUncert_TauEnDown_new;
+  mSyst["11"]=pat::MET::PhotonEnUp;
+  mSystHist["11"]=h1_MT_Stage1_metUncert_PhotonEnUp_new;
+  mSyst["12"]=pat::MET::PhotonEnDown;
+  mSystHist["12"]=h1_MT_Stage1_metUncert_PhotonEnDown_new;
+  mSyst["13"]=pat::MET::UnclusteredEnUp;
+  mSystHist["13"]=h1_MT_Stage1_metUncert_UnclusteredEnUp_new;
+  mSyst["14"]=pat::MET::UnclusteredEnDown;
+  mSystHist["14"]=h1_MT_Stage1_metUncert_UnclusteredEnDown_new;
+    }
+
 /*
  * get gen variables from LHE header of miniAOD
  * gen mass of  w, save in variable,
