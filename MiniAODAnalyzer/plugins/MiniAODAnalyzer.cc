@@ -853,7 +853,7 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
        ///
 
        ///testing new way to get systematics
-       std::cout << nGoodTau << std::endl;
+       //std::cout << nGoodTau << std::endl;
        if (nGoodTau==1)  {
 
                if ( (PassFinalCuts(tau_NoShift,met,pat::MET::JetEnUp ) == true) ) {
