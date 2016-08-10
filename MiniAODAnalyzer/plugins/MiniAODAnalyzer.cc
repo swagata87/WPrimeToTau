@@ -949,7 +949,6 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
               }
               ///
                if ( (PassFinalCuts(tau_NoShift,met,pat::MET::PhotonEnDown ) == true) ) {
-               if ( (PassFinalCuts(nGoodTau, met_val_PhotonEnDown,met_phi_PhotonEnDown,tau_pt[0],tau_phi[0]) == true) ) {
              //std::cout << "*metUncert_PhotonEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
             h1_MT_Stage1_metUncert_PhotonEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::PhotonEnDown),final_weight);
               }
