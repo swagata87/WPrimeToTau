@@ -95,7 +95,7 @@ private:
 
   //new additions
   virtual void Create_Trees();
-  virtual void Fill_Tree();
+  virtual void Fill_Tree(TLorentzVector sel_lepton, const pat::MET sel_met);
   virtual void Fill_QCD_Tree(bool iso);
 
   std::unordered_map< std::string,float > mLeptonTree;
@@ -1084,15 +1084,16 @@ void MiniAODAnalyzer::Create_Trees(){
   helper->Tree_Creater( &mQCDTree, "qcdtree");
 }
 
-void MiniAODAnalyzer::Fill_Tree(){
-    /*
+
+void MiniAODAnalyzer::Fill_Tree(TLorentzVector sel_lepton, const pat::MET sel_met){
+
     mLeptonTree["bjet1"]=0;
     mLeptonTree["mt"]=MT(sel_lepton,sel_met);
-    mLeptonTree["delta_phi"]=DeltaPhi(sel_lepton,sel_met);
-    mLeptonTree["pt"]=sel_lepton->getPt();
-    mLeptonTree["met"]=sel_met->getPt();
-    mLeptonTree["lepton_phi"]=sel_lepton->getPhi();
-    mLeptonTree["lepton_eta"]=sel_lepton->getEta();
+    mLeptonTree["delta_phi"]=deltaPhi(part1.Phi(),part2.phi());
+    mLeptonTree["pt"]=sel_lepton->Pt();
+    mLeptonTree["met"]=sel_met->pt();
+    mLeptonTree["lepton_phi"]=sel_lepton->Phi();
+    /*mLeptonTree["lepton_eta"]=sel_lepton->Eta();
     mLeptonTree["met_phi"]=sel_met->getPhi();
     mLeptonTree["kfak"]=k_fak_stored;
     if(JetList->size()>0){
@@ -1127,6 +1128,7 @@ void MiniAODAnalyzer::Fill_Tree(){
     }*/
     //helper.Tree_Filler("slimtree");
 }
+
 void MiniAODAnalyzer::Fill_QCD_Tree(bool iso){
 
     // testing stuff
