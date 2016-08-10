@@ -90,7 +90,11 @@ private:
   bool PassTauAcceptance(TLorentzVector tau);
 
   bool FindTauIDEfficiency(const edm::Event&,TLorentzVector gen_p4);
-  bool PassFinalCuts(int nGoodTau_, double met_val_, double met_phi_, double tau_pt_, double ptau_phi_);
+  bool PassFinalCuts(int nGoodTau_, double met_val_, double met_phi_, double tau_pt_, double tau_phi_);
+  bool PassFinalCuts(TLorentzVector part1, const pat::MET part2, pat::MET::METUncertainty metUncert);
+  bool PassFinalCuts(TLorentzVector part1, const pat::MET part2);
+  bool PassFinalCuts(int nGoodTau_,TLorentzVector part1, const pat::MET part2);
+
 
 
   //new additions
@@ -102,6 +106,15 @@ private:
   std::unordered_map< std::string,float > mQCDTree;
   edm::Service<TFileService> fs;
   Helper* helper =new Helper(fs);
+
+
+  //MT addition
+  double calcMT(TLorentzVector part1, TLorentzVector part2);
+  double calcMT(TLorentzVector part1, const pat::MET part2);
+  double calcMT(TLorentzVector part1, const pat::MET part2, pat::MET::METUncertainty metUncert);
+  std::unordered_map< std::string,pat::MET::METUncertainty > mSyst;
+  std::unordered_map< std::string,TH1D* > mSystHist;
+  virtual void SetSystMap();
 
   // ----------member data ---------------------------
   edm::LumiReWeighting LumiWeights_;
@@ -163,6 +176,43 @@ private:
   TH1D *h1_MT_Stage1_metUncert_UnclusteredEnDown;
   TH1D *h1_MT_Stage1_TauScaleUp;
   TH1D *h1_MT_Stage1_TauScaleDown;
+
+  ///crosscheck
+  TH1D *h1_MT_Stage1_metUncert_JetEnUp_new;
+  TH1D *h1_MT_Stage1_metUncert_JetEnDown_new;
+  TH1D *h1_MT_Stage1_metUncert_JetResUp_new;
+  TH1D *h1_MT_Stage1_metUncert_JetResDown_new;
+  TH1D *h1_MT_Stage1_metUncert_MuonEnUp_new;
+  TH1D *h1_MT_Stage1_metUncert_MuonEnDown_new;
+  TH1D *h1_MT_Stage1_metUncert_ElectronEnUp_new;
+  TH1D *h1_MT_Stage1_metUncert_ElectronEnDown_new;
+  TH1D *h1_MT_Stage1_metUncert_TauEnUp_new;
+  TH1D *h1_MT_Stage1_metUncert_TauEnDown_new;
+  TH1D *h1_MT_Stage1_metUncert_PhotonEnUp_new;
+  TH1D *h1_MT_Stage1_metUncert_PhotonEnDown_new;
+  TH1D *h1_MT_Stage1_metUncert_UnclusteredEnUp_new;
+  TH1D *h1_MT_Stage1_metUncert_UnclusteredEnDown_new;
+  TH1D *h1_MT_Stage1_TauScaleUp_new;
+  TH1D *h1_MT_Stage1_TauScaleDown_new;
+  TH1D *h1_MT_Stage1_metUncert_JetEnUp_diff;
+  TH1D *h1_MT_Stage1_metUncert_JetEnDown_diff;
+  TH1D *h1_MT_Stage1_metUncert_JetResUp_diff;
+  TH1D *h1_MT_Stage1_metUncert_JetResDown_diff;
+  TH1D *h1_MT_Stage1_metUncert_MuonEnUp_diff;
+  TH1D *h1_MT_Stage1_metUncert_MuonEnDown_diff;
+  TH1D *h1_MT_Stage1_metUncert_ElectronEnUp_diff;
+  TH1D *h1_MT_Stage1_metUncert_ElectronEnDown_diff;
+  TH1D *h1_MT_Stage1_metUncert_TauEnUp_diff;
+  TH1D *h1_MT_Stage1_metUncert_TauEnDown_diff;
+  TH1D *h1_MT_Stage1_metUncert_PhotonEnUp_diff;
+  TH1D *h1_MT_Stage1_metUncert_PhotonEnDown_diff;
+  TH1D *h1_MT_Stage1_metUncert_UnclusteredEnUp_diff;
+  TH1D *h1_MT_Stage1_metUncert_UnclusteredEnDown_diff;
+  TH1D *h1_MT_Stage1_TauScaleUp_diff;
+  TH1D *h1_MT_Stage1_TauScaleDown_diff;
+  ///crosscheck end
+
+
   TH1D *h1_recoVtx_NoPUWt;
   TH1D *h1_recoVtx_WithPUWt;
 
@@ -202,6 +252,7 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
   pileupData_ = iConfig.getParameter<std::string>("PileupDataFile") ;
   rootFile_   = TFile::Open(outputFile_.c_str(),"RECREATE"); // open output file to store histograms
   TFileDirectory histoDir = fs->mkdir("histoDir");
+  TFileDirectory crossDir = fs->mkdir("crossDir");
 
 
 /*
@@ -282,6 +333,45 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
   h1_MT_Stage1_metUncert_UnclusteredEnDown = histoDir.make<TH1D>("mT_Stage1_metUncert_UnclusteredEnDown", "MT_Stage1_metUncert_UnclusteredEnDown", 2000, 0, 2000);
   h1_MT_Stage1_TauScaleUp = histoDir.make<TH1D>("mT_Stage1_TauScaleUp", "MT_Stage1_TauScaleUp", 2000, 0, 2000);
   h1_MT_Stage1_TauScaleDown = histoDir.make<TH1D>("mT_Stage1_TauScaleDown", "MT_Stage1_TauScaleDown", 2000, 0, 2000);
+
+  ///crosscheck
+  h1_MT_Stage1_metUncert_JetEnUp_new = crossDir.make<TH1D>("mT_Stage1_metUncert_JetEnUp_new", "MT_Stage1_metUncert_JetEnUp_new", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_JetEnDown_new = crossDir.make<TH1D>("mT_Stage1_metUncert_JetEnDown_new", "MT_Stage1_metUncert_JetEnDown_new", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_JetResUp_new = crossDir.make<TH1D>("mT_Stage1_metUncert_JetResUp_new", "MT_Stage1_metUncert_JetResUp_new", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_JetResDown_new = crossDir.make<TH1D>("mT_Stage1_metUncert_JetResDown_new", "MT_Stage1_metUncert_JetResDown_new", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_MuonEnUp_new = crossDir.make<TH1D>("mT_Stage1_metUncert_MuonEnUp_new", "MT_Stage1_metUncert_MuonEnUp_new", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_MuonEnDown_new = crossDir.make<TH1D>("mT_Stage1_metUncert_MuonEnDown_new", "MT_Stage1_metUncert_MuonEnDown_new", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_ElectronEnUp_new = crossDir.make<TH1D>("mT_Stage1_metUncert_ElectronEnUp_new", "MT_Stage1_metUncert_ElectronEnUp_new", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_ElectronEnDown_new = crossDir.make<TH1D>("mT_Stage1_metUncert_ElectronEnDown_new", "MT_Stage1_metUncert_ElectronEnDown_new", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_TauEnUp_new = crossDir.make<TH1D>("mT_Stage1_metUncert_TauEnUp_new", "MT_Stage1_metUncert_TauEnUp_new", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_TauEnDown_new = crossDir.make<TH1D>("mT_Stage1_metUncert_TauEnDown_new", "MT_Stage1_metUncert_TauEnDown_new", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_PhotonEnUp_new = crossDir.make<TH1D>("mT_Stage1_metUncert_PhotonEnUp_new", "MT_Stage1_metUncert_PhotonEnUp_new", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_PhotonEnDown_new = crossDir.make<TH1D>("mT_Stage1_metUncert_PhotonEnDown_new", "MT_Stage1_metUncert_PhotonEnDown_new", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_UnclusteredEnUp_new = crossDir.make<TH1D>("mT_Stage1_metUncert_UnclusteredEnUp_new", "MT_Stage1_metUncert_UnclusteredEnUp_new", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_UnclusteredEnDown_new = crossDir.make<TH1D>("mT_Stage1_metUncert_UnclusteredEnDown_new", "MT_Stage1_metUncert_UnclusteredEnDown_new", 2000, 0, 2000);
+  h1_MT_Stage1_TauScaleUp_new = crossDir.make<TH1D>("mT_Stage1_TauScaleUp_new", "MT_Stage1_TauScaleUp_new", 2000, 0, 2000);
+  h1_MT_Stage1_TauScaleDown_new = crossDir.make<TH1D>("mT_Stage1_TauScaleDown_new", "MT_Stage1_TauScaleDown_new", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_JetEnUp_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_JetEnUp_diff", "MT_Stage1_metUncert_JetEnUp_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_JetEnDown_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_JetEnDown_diff", "MT_Stage1_metUncert_JetEnDown_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_JetResUp_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_JetResUp_diff", "MT_Stage1_metUncert_JetResUp_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_JetResDown_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_JetResDown_diff", "MT_Stage1_metUncert_JetResDown_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_MuonEnUp_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_MuonEnUp_diff", "MT_Stage1_metUncert_MuonEnUp_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_MuonEnDown_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_MuonEnDown_diff", "MT_Stage1_metUncert_MuonEnDown_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_ElectronEnUp_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_ElectronEnUp_diff", "MT_Stage1_metUncert_ElectronEnUp_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_ElectronEnDown_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_ElectronEnDown_diff", "MT_Stage1_metUncert_ElectronEnDown_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_TauEnUp_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_TauEnUp_diff", "MT_Stage1_metUncert_TauEnUp_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_TauEnDown_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_TauEnDown_diff", "MT_Stage1_metUncert_TauEnDown_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_PhotonEnUp_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_PhotonEnUp_diff", "MT_Stage1_metUncert_PhotonEnUp_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_PhotonEnDown_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_PhotonEnDown_diff", "MT_Stage1_metUncert_PhotonEnDown_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_UnclusteredEnUp_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_UnclusteredEnUp_diff", "MT_Stage1_metUncert_UnclusteredEnUp_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_UnclusteredEnDown_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_UnclusteredEnDown_diff", "MT_Stage1_metUncert_UnclusteredEnDown_diff", 2000, 0, 2000);
+  h1_MT_Stage1_TauScaleUp_diff = crossDir.make<TH1D>("mT_Stage1_TauScaleUp_diff", "MT_Stage1_TauScaleUp_diff", 2000, 0, 2000);
+  h1_MT_Stage1_TauScaleDown_diff = crossDir.make<TH1D>("mT_Stage1_TauScaleDown_diff", "MT_Stage1_TauScaleDown_diff", 2000, 0, 2000);
+  ///crosscheck
+
+
+
+
   h1_recoVtx_NoPUWt = histoDir.make<TH1D>("recoVtx_NoPUWt", "RecoVtx_NoPUWt", 100, 0, 100);
   h1_recoVtx_WithPUWt = histoDir.make<TH1D>("recoVtx_WithPUWt", "RecoVtx_WithPUWt", 100, 0, 100);
 
@@ -691,12 +781,20 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
      h1_TauPt_Stage1->Fill(tau_pt[0],final_weight);
      //std::cout << "*Standard* dphi_tau_met=" << dphi_tau_met << std::endl;
      double MT=  sqrt(2*tau_pt[0]*met_val*(1- cos(dphi_tau_met)));
+     //double MT_new= calcMT(tau_NoShift,met);
+     //if (MT-MT_new != 0){
+         //std::cout << "there seems to be something wrong, calcMT and MT is different" << std::endl;
+     //}
      h1_MT_Stage1->Fill(MT,final_weight);
        }
        //--Systematics--//
        if ( (PassFinalCuts(nGoodTau, met_val_JetEnUp,met_phi_JetEnUp,tau_pt[0],tau_phi[0] ) == true) ) {
      //std::cout << "*metUncert_JetEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-     double MT_metUncert_JetEnUp = sqrt(2*tau_pt[0]*met_val_JetEnUp*(1- cos(dphi_tau_met)));
+     double MT_metUncert_JetEnUp = sqrt(2*tau_pt[0]*met_val_JetEnUp*(1- cos(dphi_tau_met)));  // always use the same dphi? or shifted dphi?
+     //double MT_metUncert_JetEnUp_test = calcMT(tau_NoShift,met,pat::MET::JetEnUp);
+     //if (MT_metUncert_JetEnUp-MT_metUncert_JetEnUp_test != 0){
+         //std::cout << MT_metUncert_JetEnUp << " " << MT_metUncert_JetEnUp_test << " " << MT_metUncert_JetEnUp-MT_metUncert_JetEnUp_test << std::endl;
+     //}
      h1_MT_Stage1_metUncert_JetEnUp->Fill(MT_metUncert_JetEnUp,final_weight);
        }
        ///
@@ -790,8 +888,108 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
      h1_MT_Stage1_TauScaleDown->Fill(MT_TauScaleDown,final_weight);
        }
        ///
+
+       ///testing new way to get systematics
+       //std::cout << nGoodTau << std::endl;
+       if (nGoodTau==1)  {
+            for (int i=1;i<=14;i++){
+                if ( (PassFinalCuts(tau_NoShift,met,mSyst[std::to_string(i)] ) == true) ) {
+                 //std::cout << "*metUncert_JetEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
+                 mSystHist[std::to_string(i)]->Fill(calcMT(tau_NoShift,met,mSyst[std::to_string(i)]),final_weight);
+               }
+            }/*
+               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::JetEnUp ) == true) ) {
+             //std::cout << "*metUncert_JetEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
+             //double MT_metUncert_JetEnUp = sqrt(2*tau_pt[0]*met_val_JetEnUp*(1- cos(dphi_tau_met)));  // always use the same dphi? or shifted dphi?
+             //double MT_metUncert_JetEnUp_test = calcMT(tau_NoShift,met,pat::MET::JetEnUp);
+             //std::cout << MT_metUncert_JetEnUp << " " << MT_metUncert_JetEnUp_test << " " << MT_metUncert_JetEnUp-MT_metUncert_JetEnUp_test << std::endl;
+             h1_MT_Stage1_metUncert_JetEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::JetEnUp),final_weight);
+               }
+               ///
+               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::JetEnDown ) == true) ) {
+             //std::cout << "*metUncert_JetEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
+             h1_MT_Stage1_metUncert_JetEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::JetEnDown),final_weight);
+               }
+               ///
+               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::JetResUp ) == true) ) {
+             //std::cout << "*metUncert_JetResUp* dphi_tau_met=" << dphi_tau_met << std::endl;
+             h1_MT_Stage1_metUncert_JetResUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::JetResUp),final_weight);
+               }
+               ///
+               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::JetResDown ) == true) ) {
+             // std::cout << "*metUncert_JetResDown* dphi_tau_met=" << dphi_tau_met << std::endl;
+             h1_MT_Stage1_metUncert_JetResDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::JetResDown),final_weight);
+               }
+               ///
+               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::MuonEnUp ) == true) ) {
+             //std::cout << "*metUncert_MuonEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
+             h1_MT_Stage1_metUncert_MuonEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::MuonEnUp),final_weight);
+               }
+               ///
+               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::MuonEnDown ) == true) ) {
+             // std::cout << "*metUncert_MuonEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
+             h1_MT_Stage1_metUncert_MuonEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::MuonEnDown),final_weight);
+               }
+               ///
+               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::ElectronEnUp ) == true) ) {
+             //std::cout << "*metUncert_ElectronEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
+            h1_MT_Stage1_metUncert_ElectronEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::ElectronEnUp),final_weight);
+              }
+              ///
+               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::ElectronEnDown ) == true) ) {
+             //std::cout << "*metUncert_ElectronEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
+             h1_MT_Stage1_metUncert_ElectronEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::ElectronEnDown),final_weight);
+              }
+              ///
+               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::TauEnUp ) == true) ) {
+             //std::cout << "*metUncert_TauEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
+            h1_MT_Stage1_metUncert_TauEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::TauEnUp),final_weight);
+              }
+              ///
+               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::TauEnDown ) == true) ) {
+             //std::cout << "*metUncert_TauEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
+            h1_MT_Stage1_metUncert_TauEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::TauEnDown),final_weight);
+              }
+              ///
+               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::PhotonEnUp ) == true) ) {
+             //std::cout << "*metUncert_PhotonEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
+            h1_MT_Stage1_metUncert_PhotonEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::PhotonEnUp),final_weight);
+              }
+              ///
+               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::PhotonEnDown ) == true) ) {
+             //std::cout << "*metUncert_PhotonEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
+            h1_MT_Stage1_metUncert_PhotonEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::PhotonEnDown),final_weight);
+              }
+              ///
+               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::   UnclusteredEnUp ) == true) ) {
+             //std::cout << "*metUncert_UnclusteredEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
+            h1_MT_Stage1_metUncert_UnclusteredEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::UnclusteredEnUp),final_weight);
+              }
+               ///
+               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::UnclusteredEnDown ) == true) ) {
+             //std::cout << "*metUncert_UnclusteredEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
+             h1_MT_Stage1_metUncert_UnclusteredEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::UnclusteredEnDown),final_weight);
+               }*/
+               ///--Tau Scale--///
+           }
+           if (nGoodTau_ScaleUp==1){
+               if ( (PassFinalCuts(tau_ScaleUp,met ) == true ) ) {
+             //std::cout << "*Tau Scale Up* dphi_tau_met=" << dphi_tau_met << std::endl;
+             h1_MT_Stage1_TauScaleUp_new->Fill(calcMT(tau_ScaleUp,met),final_weight);
+               }
+           }
+               ///
+           if (nGoodTau_ScaleDown==1){
+               if ( (PassFinalCuts(tau_ScaleDown,met ) == true) ) {
+             //std::cout << "*Tau Scale Down* dphi_tau_met=" << dphi_tau_met << std::endl;
+             h1_MT_Stage1_TauScaleDown_new->Fill(calcMT(tau_ScaleDown,met),final_weight);
+          }
+       }
+    }
+
+
      }
-   }
+   //}
 
    //--------------//
    //-- Region A --// Only one non-isolated tau //
@@ -900,6 +1098,53 @@ bool MiniAODAnalyzer::PassFinalCuts(int nGoodTau_, double met_val_,double met_ph
   }
   return passed;
 }
+bool MiniAODAnalyzer::PassFinalCuts(TLorentzVector part1, const pat::MET part2, pat::MET::METUncertainty metUncert) {
+  bool passed=false;
+    if ( part2.shiftedPt(metUncert)>120 ) {
+      dphi_tau_met = deltaPhi(part1.Phi(),part2.shiftedPhi(metUncert));
+      double pToverEtMiss=part1.Pt()/part2.shiftedPt(metUncert) ;
+      if (pToverEtMiss>0.7 && pToverEtMiss<1.3) {
+        // std::cout << "pToverEtMiss=" << pToverEtMiss << std::endl;
+        if (dphi_tau_met>2.4) {
+          // std::cout << "dphi_tau_met=" << dphi_tau_met << std::endl;
+          passed=true;
+        }
+    }
+  }
+  return passed;
+}
+bool MiniAODAnalyzer::PassFinalCuts(TLorentzVector part1, const pat::MET part2) {
+  bool passed=false;
+    if ( part2.pt()>120 ) {
+      dphi_tau_met = deltaPhi(part1.Phi(),part2.phi());
+      double pToverEtMiss=part1.Pt()/part2.pt() ;
+      if (pToverEtMiss>0.7 && pToverEtMiss<1.3) {
+        // std::cout << "pToverEtMiss=" << pToverEtMiss << std::endl;
+        if (dphi_tau_met>2.4) {
+          // std::cout << "dphi_tau_met=" << dphi_tau_met << std::endl;
+          passed=true;
+        }
+    }
+  }
+  return passed;
+}
+bool MiniAODAnalyzer::PassFinalCuts(int nGoodTau_,TLorentzVector part1, const pat::MET part2) {
+  bool passed=false;
+  if (nGoodTau_==1) {
+    if ( part2.pt()>120 ) {
+      dphi_tau_met = deltaPhi(part1.Phi(),part2.phi());
+      double pToverEtMiss=part1.Pt()/part2.pt() ;
+      if (pToverEtMiss>0.7 && pToverEtMiss<1.3) {
+        // std::cout << "pToverEtMiss=" << pToverEtMiss << std::endl;
+        if (dphi_tau_met>2.4) {
+          // std::cout << "dphi_tau_met=" << dphi_tau_met << std::endl;
+          passed=true;
+        }
+      }
+    }
+  }
+  return passed;
+}
 
 bool MiniAODAnalyzer::FindTauIDEfficiency(const edm::Event& iEvent, TLorentzVector gen_p4) {
 
@@ -977,6 +1222,7 @@ MiniAODAnalyzer::beginJob()
   mytree->Branch("event_evtNo",  &Event, "event_evtNo/I");
   //mytree->Branch("num_PU_vertices",&num_PU_vertices,"num_PU_vertices/I");
   Create_Trees();
+  SetSystMap();
 
   helper->CreateHistoUnchangedName("h_counters", 10, 0, 11, "N_{events}");
 }
@@ -1002,6 +1248,41 @@ MiniAODAnalyzer::endJob()
   helper->WriteTree("qcdtree");
 
   rootFile_->Close();
+
+
+  ///crosscheck
+  h1_MT_Stage1_metUncert_JetEnUp_diff->Add(h1_MT_Stage1_metUncert_JetEnUp_new,1);
+  h1_MT_Stage1_metUncert_JetEnUp_diff->Add(h1_MT_Stage1_metUncert_JetEnUp,-1);
+  h1_MT_Stage1_metUncert_JetEnDown_diff->Add(h1_MT_Stage1_metUncert_JetEnDown_new,1);
+  h1_MT_Stage1_metUncert_JetEnDown_diff->Add(h1_MT_Stage1_metUncert_JetEnDown,-1);
+  h1_MT_Stage1_metUncert_JetResUp_diff->Add(h1_MT_Stage1_metUncert_JetResUp_new,1);
+  h1_MT_Stage1_metUncert_JetResUp_diff->Add(h1_MT_Stage1_metUncert_JetResUp,-1);
+  h1_MT_Stage1_metUncert_JetResDown_diff->Add(h1_MT_Stage1_metUncert_JetResDown_new,1);
+  h1_MT_Stage1_metUncert_JetResDown_diff->Add(h1_MT_Stage1_metUncert_JetResDown,-1);
+  h1_MT_Stage1_metUncert_MuonEnUp_diff->Add(h1_MT_Stage1_metUncert_MuonEnUp_new,1);
+  h1_MT_Stage1_metUncert_MuonEnUp_diff->Add(h1_MT_Stage1_metUncert_MuonEnUp,-1);
+  h1_MT_Stage1_metUncert_MuonEnDown_diff->Add(h1_MT_Stage1_metUncert_MuonEnDown_new,1);
+  h1_MT_Stage1_metUncert_MuonEnDown_diff->Add(h1_MT_Stage1_metUncert_MuonEnDown,-1);
+  h1_MT_Stage1_metUncert_ElectronEnUp_diff->Add(h1_MT_Stage1_metUncert_ElectronEnUp_new,1);
+  h1_MT_Stage1_metUncert_ElectronEnUp_diff->Add(h1_MT_Stage1_metUncert_ElectronEnUp,-1);
+  h1_MT_Stage1_metUncert_ElectronEnDown_diff->Add(h1_MT_Stage1_metUncert_ElectronEnDown_new,1);
+  h1_MT_Stage1_metUncert_ElectronEnDown_diff->Add(h1_MT_Stage1_metUncert_ElectronEnDown,-1);
+  h1_MT_Stage1_metUncert_TauEnUp_diff->Add(h1_MT_Stage1_metUncert_TauEnUp_new,1);
+  h1_MT_Stage1_metUncert_TauEnUp_diff->Add(h1_MT_Stage1_metUncert_TauEnUp,-1);
+  h1_MT_Stage1_metUncert_TauEnDown_diff->Add(h1_MT_Stage1_metUncert_TauEnDown_new,1);
+  h1_MT_Stage1_metUncert_TauEnDown_diff->Add(h1_MT_Stage1_metUncert_TauEnDown,-1);
+  h1_MT_Stage1_metUncert_PhotonEnUp_diff->Add(h1_MT_Stage1_metUncert_PhotonEnUp_new,1);
+  h1_MT_Stage1_metUncert_PhotonEnUp_diff->Add(h1_MT_Stage1_metUncert_PhotonEnUp,-1);
+  h1_MT_Stage1_metUncert_PhotonEnDown_diff->Add(h1_MT_Stage1_metUncert_PhotonEnDown_new,1);
+  h1_MT_Stage1_metUncert_PhotonEnDown_diff->Add(h1_MT_Stage1_metUncert_PhotonEnDown,-1);
+  h1_MT_Stage1_metUncert_UnclusteredEnUp_diff->Add(h1_MT_Stage1_metUncert_UnclusteredEnUp_new,1);
+  h1_MT_Stage1_metUncert_UnclusteredEnUp_diff->Add(h1_MT_Stage1_metUncert_UnclusteredEnUp,-1);
+  h1_MT_Stage1_metUncert_UnclusteredEnDown_diff->Add(h1_MT_Stage1_metUncert_UnclusteredEnDown_new,1);
+  h1_MT_Stage1_metUncert_UnclusteredEnDown_diff->Add(h1_MT_Stage1_metUncert_UnclusteredEnDown,-1);
+  h1_MT_Stage1_TauScaleUp_diff->Add(h1_MT_Stage1_TauScaleUp_new,1);
+  h1_MT_Stage1_TauScaleUp_diff->Add(h1_MT_Stage1_TauScaleUp,-1);
+  h1_MT_Stage1_TauScaleDown_diff->Add(h1_MT_Stage1_TauScaleDown_new,1);
+  h1_MT_Stage1_TauScaleDown_diff->Add(h1_MT_Stage1_TauScaleDown,-1);
 
   //TFileDirectory subDir = fs->mkdir( "mySubDirectory" ); //testing
   //subDir.cd();
@@ -1229,10 +1510,53 @@ void MiniAODAnalyzer::Fill_QCD_Tree(bool iso){
 */}
 
 
-//double specialAna::MT(pxl::Particle* lepton, pxl::Particle* met) {
-    //double mm = 2 * lepton->getPt() * met->getPt() * ( 1. - cos(lepton->getPhi() - met->getPhi()) );
-    //return sqrt(mm);
-//}
+double MiniAODAnalyzer::calcMT(TLorentzVector part1, TLorentzVector part2) {
+    double mm = 2 * part1.Pt() * part2.Pt() * ( 1. - cos(deltaPhi(part1.Phi(),part2.Phi()) ));
+    return sqrt(mm);
+}
+double MiniAODAnalyzer::calcMT(TLorentzVector part1, const pat::MET part2) {
+    double mm = 2 * part1.Pt() * part2.pt() * ( 1. - cos(deltaPhi(part1.Phi(),part2.phi()) ));
+    return sqrt(mm);
+}
+
+double MiniAODAnalyzer::calcMT(TLorentzVector part1, const pat::MET part2, pat::MET::METUncertainty metUncert) {
+//double MiniAODAnalyzer::calcMT(TLorentzVector part1, pat::MET part2, const edm::EventSetup evtSetup) {
+    double mm = 2 * part1.Pt() * part2.shiftedPt(metUncert) * ( 1. - cos(deltaPhi(part1.Phi(),part2.shiftedPhi(metUncert)) ));
+    return sqrt(mm);
+}
+
+
+void MiniAODAnalyzer::SetSystMap(){
+  mSyst["1"]=pat::MET::JetEnUp;
+  mSystHist["1"]=h1_MT_Stage1_metUncert_JetEnUp_new;
+  mSyst["2"]=pat::MET::JetEnDown;
+  mSystHist["2"]=h1_MT_Stage1_metUncert_JetEnDown_new;
+  mSyst["3"]=pat::MET::JetResUp;
+  mSystHist["3"]=h1_MT_Stage1_metUncert_JetResUp_new;
+  mSyst["4"]=pat::MET::JetResDown;
+  mSystHist["4"]=h1_MT_Stage1_metUncert_JetResDown_new;
+  mSyst["5"]=pat::MET::MuonEnUp;
+  mSystHist["5"]=h1_MT_Stage1_metUncert_MuonEnUp_new;
+  mSyst["6"]=pat::MET::MuonEnDown;
+  mSystHist["6"]=h1_MT_Stage1_metUncert_MuonEnDown_new;
+  mSyst["7"]=pat::MET::ElectronEnUp;
+  mSystHist["7"]=h1_MT_Stage1_metUncert_ElectronEnUp_new;
+  mSyst["8"]=pat::MET::ElectronEnDown;
+  mSystHist["8"]=h1_MT_Stage1_metUncert_ElectronEnDown_new;
+  mSyst["9"]=pat::MET::TauEnUp;
+  mSystHist["9"]=h1_MT_Stage1_metUncert_TauEnUp_new;
+  mSyst["10"]=pat::MET::TauEnDown;
+  mSystHist["10"]=h1_MT_Stage1_metUncert_TauEnDown_new;
+  mSyst["11"]=pat::MET::PhotonEnUp;
+  mSystHist["11"]=h1_MT_Stage1_metUncert_PhotonEnUp_new;
+  mSyst["12"]=pat::MET::PhotonEnDown;
+  mSystHist["12"]=h1_MT_Stage1_metUncert_PhotonEnDown_new;
+  mSyst["13"]=pat::MET::UnclusteredEnUp;
+  mSystHist["13"]=h1_MT_Stage1_metUncert_UnclusteredEnUp_new;
+  mSyst["14"]=pat::MET::UnclusteredEnDown;
+  mSystHist["14"]=h1_MT_Stage1_metUncert_UnclusteredEnDown_new;
+    }
+
 /*
  * get gen variables from LHE header of miniAOD
  * gen mass of  w, save in variable,
