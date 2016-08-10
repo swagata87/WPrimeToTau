@@ -191,6 +191,22 @@ private:
   TH1D *h1_MT_Stage1_metUncert_UnclusteredEnDown_new;
   TH1D *h1_MT_Stage1_TauScaleUp_new;
   TH1D *h1_MT_Stage1_TauScaleDown_new;
+  TH1D *h1_MT_Stage1_metUncert_JetEnUp_diff;
+  TH1D *h1_MT_Stage1_metUncert_JetEnDown_diff;
+  TH1D *h1_MT_Stage1_metUncert_JetResUp_diff;
+  TH1D *h1_MT_Stage1_metUncert_JetResDown_diff;
+  TH1D *h1_MT_Stage1_metUncert_MuonEnUp_diff;
+  TH1D *h1_MT_Stage1_metUncert_MuonEnDown_diff;
+  TH1D *h1_MT_Stage1_metUncert_ElectronEnUp_diff;
+  TH1D *h1_MT_Stage1_metUncert_ElectronEnDown_diff;
+  TH1D *h1_MT_Stage1_metUncert_TauEnUp_diff;
+  TH1D *h1_MT_Stage1_metUncert_TauEnDown_diff;
+  TH1D *h1_MT_Stage1_metUncert_PhotonEnUp_diff;
+  TH1D *h1_MT_Stage1_metUncert_PhotonEnDown_diff;
+  TH1D *h1_MT_Stage1_metUncert_UnclusteredEnUp_diff;
+  TH1D *h1_MT_Stage1_metUncert_UnclusteredEnDown_diff;
+  TH1D *h1_MT_Stage1_TauScaleUp_diff;
+  TH1D *h1_MT_Stage1_TauScaleDown_diff;
   ///crosscheck end
 
 
@@ -332,6 +348,22 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
   h1_MT_Stage1_metUncert_UnclusteredEnDown_new = crossDir.make<TH1D>("mT_Stage1_metUncert_UnclusteredEnDown_new", "MT_Stage1_metUncert_UnclusteredEnDown_new", 2000, 0, 2000);
   h1_MT_Stage1_TauScaleUp_new = crossDir.make<TH1D>("mT_Stage1_TauScaleUp_new", "MT_Stage1_TauScaleUp_new", 2000, 0, 2000);
   h1_MT_Stage1_TauScaleDown_new = crossDir.make<TH1D>("mT_Stage1_TauScaleDown_new", "MT_Stage1_TauScaleDown_new", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_JetEnUp_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_JetEnUp_diff", "MT_Stage1_metUncert_JetEnUp_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_JetEnDown_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_JetEnDown_diff", "MT_Stage1_metUncert_JetEnDown_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_JetResUp_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_JetResUp_diff", "MT_Stage1_metUncert_JetResUp_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_JetResDown_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_JetResDown_diff", "MT_Stage1_metUncert_JetResDown_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_MuonEnUp_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_MuonEnUp_diff", "MT_Stage1_metUncert_MuonEnUp_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_MuonEnDown_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_MuonEnDown_diff", "MT_Stage1_metUncert_MuonEnDown_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_ElectronEnUp_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_ElectronEnUp_diff", "MT_Stage1_metUncert_ElectronEnUp_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_ElectronEnDown_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_ElectronEnDown_diff", "MT_Stage1_metUncert_ElectronEnDown_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_TauEnUp_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_TauEnUp_diff", "MT_Stage1_metUncert_TauEnUp_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_TauEnDown_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_TauEnDown_diff", "MT_Stage1_metUncert_TauEnDown_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_PhotonEnUp_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_PhotonEnUp_diff", "MT_Stage1_metUncert_PhotonEnUp_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_PhotonEnDown_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_PhotonEnDown_diff", "MT_Stage1_metUncert_PhotonEnDown_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_UnclusteredEnUp_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_UnclusteredEnUp_diff", "MT_Stage1_metUncert_UnclusteredEnUp_diff", 2000, 0, 2000);
+  h1_MT_Stage1_metUncert_UnclusteredEnDown_diff = crossDir.make<TH1D>("mT_Stage1_metUncert_UnclusteredEnDown_diff", "MT_Stage1_metUncert_UnclusteredEnDown_diff", 2000, 0, 2000);
+  h1_MT_Stage1_TauScaleUp_diff = crossDir.make<TH1D>("mT_Stage1_TauScaleUp_diff", "MT_Stage1_TauScaleUp_diff", 2000, 0, 2000);
+  h1_MT_Stage1_TauScaleDown_diff = crossDir.make<TH1D>("mT_Stage1_TauScaleDown_diff", "MT_Stage1_TauScaleDown_diff", 2000, 0, 2000);
   ///crosscheck
 
 
@@ -746,18 +778,20 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
      h1_TauPt_Stage1->Fill(tau_pt[0],final_weight);
      //std::cout << "*Standard* dphi_tau_met=" << dphi_tau_met << std::endl;
      double MT=  sqrt(2*tau_pt[0]*met_val*(1- cos(dphi_tau_met)));
-     double MT_new= calcMT(tau_NoShift,met);
-     if (MT-MT_new == 0){
-         std::cout << "there seems to be something wrong, calcMT and MT is different" << std::endl;
-     }
+     //double MT_new= calcMT(tau_NoShift,met);
+     //if (MT-MT_new != 0){
+         //std::cout << "there seems to be something wrong, calcMT and MT is different" << std::endl;
+     //}
      h1_MT_Stage1->Fill(MT,final_weight);
        }
        //--Systematics--//
        if ( (PassFinalCuts(nGoodTau, met_val_JetEnUp,met_phi_JetEnUp,tau_pt[0],tau_phi[0] ) == true) ) {
      //std::cout << "*metUncert_JetEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
      double MT_metUncert_JetEnUp = sqrt(2*tau_pt[0]*met_val_JetEnUp*(1- cos(dphi_tau_met)));  // always use the same dphi? or shifted dphi?
-     double MT_metUncert_JetEnUp_test = calcMT(tau_NoShift,met,pat::MET::JetEnUp);
-     std::cout << MT_metUncert_JetEnUp << " " << MT_metUncert_JetEnUp_test << " " << MT_metUncert_JetEnUp-MT_metUncert_JetEnUp_test << std::endl;
+     //double MT_metUncert_JetEnUp_test = calcMT(tau_NoShift,met,pat::MET::JetEnUp);
+     //if (MT_metUncert_JetEnUp-MT_metUncert_JetEnUp_test != 0){
+         //std::cout << MT_metUncert_JetEnUp << " " << MT_metUncert_JetEnUp_test << " " << MT_metUncert_JetEnUp-MT_metUncert_JetEnUp_test << std::endl;
+     //}
      h1_MT_Stage1_metUncert_JetEnUp->Fill(MT_metUncert_JetEnUp,final_weight);
        }
        ///
@@ -1206,6 +1240,41 @@ MiniAODAnalyzer::endJob()
   helper->WriteTree("qcdtree");
 
   rootFile_->Close();
+
+
+  ///crosscheck
+  h1_MT_Stage1_metUncert_JetEnUp_diff->Add(h1_MT_Stage1_metUncert_JetEnUp_new,1);
+  h1_MT_Stage1_metUncert_JetEnUp_diff->Add(h1_MT_Stage1_metUncert_JetEnUp,-1);
+  h1_MT_Stage1_metUncert_JetEnDown_diff->Add(h1_MT_Stage1_metUncert_JetEnDown_new,1);
+  h1_MT_Stage1_metUncert_JetEnDown_diff->Add(h1_MT_Stage1_metUncert_JetEnDown,-1);
+  h1_MT_Stage1_metUncert_JetResUp_diff->Add(h1_MT_Stage1_metUncert_JetResUp_new,1);
+  h1_MT_Stage1_metUncert_JetResUp_diff->Add(h1_MT_Stage1_metUncert_JetResUp,-1);
+  h1_MT_Stage1_metUncert_JetResDown_diff->Add(h1_MT_Stage1_metUncert_JetResDown_new,1);
+  h1_MT_Stage1_metUncert_JetResDown_diff->Add(h1_MT_Stage1_metUncert_JetResDown,-1);
+  h1_MT_Stage1_metUncert_MuonEnUp_diff->Add(h1_MT_Stage1_metUncert_MuonEnUp_new,1);
+  h1_MT_Stage1_metUncert_MuonEnUp_diff->Add(h1_MT_Stage1_metUncert_MuonEnUp,-1);
+  h1_MT_Stage1_metUncert_MuonEnDown_diff->Add(h1_MT_Stage1_metUncert_MuonEnDown_new,1);
+  h1_MT_Stage1_metUncert_MuonEnDown_diff->Add(h1_MT_Stage1_metUncert_MuonEnDown,-1);
+  h1_MT_Stage1_metUncert_ElectronEnUp_diff->Add(h1_MT_Stage1_metUncert_ElectronEnUp_new,1);
+  h1_MT_Stage1_metUncert_ElectronEnUp_diff->Add(h1_MT_Stage1_metUncert_ElectronEnUp,-1);
+  h1_MT_Stage1_metUncert_ElectronEnDown_diff->Add(h1_MT_Stage1_metUncert_ElectronEnDown_new,1);
+  h1_MT_Stage1_metUncert_ElectronEnDown_diff->Add(h1_MT_Stage1_metUncert_ElectronEnDown,-1);
+  h1_MT_Stage1_metUncert_TauEnUp_diff->Add(h1_MT_Stage1_metUncert_TauEnUp_new,1);
+  h1_MT_Stage1_metUncert_TauEnUp_diff->Add(h1_MT_Stage1_metUncert_TauEnUp,-1);
+  h1_MT_Stage1_metUncert_TauEnDown_diff->Add(h1_MT_Stage1_metUncert_TauEnDown_new,1);
+  h1_MT_Stage1_metUncert_TauEnDown_diff->Add(h1_MT_Stage1_metUncert_TauEnDown,-1);
+  h1_MT_Stage1_metUncert_PhotonEnUp_diff->Add(h1_MT_Stage1_metUncert_PhotonEnUp_new,1);
+  h1_MT_Stage1_metUncert_PhotonEnUp_diff->Add(h1_MT_Stage1_metUncert_PhotonEnUp,-1);
+  h1_MT_Stage1_metUncert_PhotonEnDown_diff->Add(h1_MT_Stage1_metUncert_PhotonEnDown_new,1);
+  h1_MT_Stage1_metUncert_PhotonEnDown_diff->Add(h1_MT_Stage1_metUncert_PhotonEnDown,-1);
+  h1_MT_Stage1_metUncert_UnclusteredEnUp_diff->Add(h1_MT_Stage1_metUncert_UnclusteredEnUp_new,1);
+  h1_MT_Stage1_metUncert_UnclusteredEnUp_diff->Add(h1_MT_Stage1_metUncert_UnclusteredEnUp,-1);
+  h1_MT_Stage1_metUncert_UnclusteredEnDown_diff->Add(h1_MT_Stage1_metUncert_UnclusteredEnDown_new,1);
+  h1_MT_Stage1_metUncert_UnclusteredEnDown_diff->Add(h1_MT_Stage1_metUncert_UnclusteredEnDown,-1);
+  h1_MT_Stage1_TauScaleUp_diff->Add(h1_MT_Stage1_TauScaleUp_new,1);
+  h1_MT_Stage1_TauScaleUp_diff->Add(h1_MT_Stage1_TauScaleUp,-1);
+  h1_MT_Stage1_TauScaleDown_diff->Add(h1_MT_Stage1_TauScaleDown_new,1);
+  h1_MT_Stage1_TauScaleDown_diff->Add(h1_MT_Stage1_TauScaleDown,-1);
 
   //TFileDirectory subDir = fs->mkdir( "mySubDirectory" ); //testing
   //subDir.cd();
