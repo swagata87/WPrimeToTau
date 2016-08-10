@@ -99,7 +99,7 @@ private:
 
   //new additions
   virtual void Create_Trees();
-  virtual void Fill_Tree(TLorentzVector sel_lepton, const pat::MET sel_met);
+  virtual void Fill_Tree(TLorentzVector sel_lepton, const pat::MET sel_met,double weight);
   virtual void Fill_QCD_Tree(bool iso);
 
   std::unordered_map< std::string,float > mLeptonTree;
@@ -1068,8 +1068,11 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
 
 
    mytree->Fill();
-   Fill_QCD_Tree(true);
 
+   if(tau_NoShift.Pt()>80 && calcMT(tau_NoShift,met)>50){
+       Fill_QCD_Tree(true);
+       Fill_Tree(tau_NoShift,met,final_weight);
+   }
 #ifdef THIS_IS_AN_EVENT_EXAMPLE
    Handle<ExampleData> pIn;
    iEvent.getByLabel("example",pIn);
@@ -1366,19 +1369,20 @@ void MiniAODAnalyzer::Create_Trees(){
 }
 
 
-void MiniAODAnalyzer::Fill_Tree(TLorentzVector sel_lepton, const pat::MET sel_met){
+void MiniAODAnalyzer::Fill_Tree(TLorentzVector sel_lepton, const pat::MET sel_met, double weight){
 
     mLeptonTree["bjet1"]=0;
-    mLeptonTree["mt"]=MT(sel_lepton,sel_met);
-    mLeptonTree["delta_phi"]=deltaPhi(part1.Phi(),part2.phi());
-    mLeptonTree["pt"]=sel_lepton->Pt();
-    mLeptonTree["met"]=sel_met->pt();
-    mLeptonTree["lepton_phi"]=sel_lepton->Phi();
-    mLeptonTree["lepton_eta"]=sel_lepton->Eta();
-    mLeptonTree["met_phi"]=sel_met->phi();
+    mLeptonTree["mt"]=calcMT(sel_lepton,sel_met);
+    mLeptonTree["delta_phi"]=deltaPhi(sel_lepton.Phi(),sel_met.phi());
+    mLeptonTree["pt"]=sel_lepton.Pt();
+    mLeptonTree["met"]=sel_met.pt();
+    mLeptonTree["lepton_phi"]=sel_lepton.Phi();
+    mLeptonTree["lepton_eta"]=sel_lepton.Eta();
+    mLeptonTree["met_phi"]=sel_met.phi();
     //mLeptonTree["kfak"]=k_fak_stored;
+    //good for crosschecks
     /*
-     * if(JetList->size()>0){
+    if(JetList->size()>0){
         pxl::Particle* jet = (pxl::Particle*) JetList->at(0);
         mLeptonTree["jet1_et"]=jet->getPt();
         mLeptonTree["jet1_phi"]=jet->getPhi();
@@ -1389,26 +1393,33 @@ void MiniAODAnalyzer::Fill_Tree(TLorentzVector sel_lepton, const pat::MET sel_me
         mLeptonTree["jet1_et"]=-1;
         mLeptonTree["jet1_phi"]=99;
         mLeptonTree["jet1_eta"]=99;
-
-    }
+    }*/
     //PDF
-    if( not runOnData ){
-        mLeptonTree["id1"]=m_GenEvtView->getUserRecord("f1");
-        mLeptonTree["id2"]=m_GenEvtView->getUserRecord("f2");
-        mLeptonTree["x1"]=m_GenEvtView->getUserRecord("x1");
-        mLeptonTree["x2"]=m_GenEvtView->getUserRecord("x2");
-        mLeptonTree["qscale"]=m_GenEvtView->getUserRecord("Q");
+    //needed for reweighting
+    if( not RunOnData ){
+        mLeptonTree["id1"]=0;
+        mLeptonTree["id2"]=0;
+        mLeptonTree["x1"]=0;
+        mLeptonTree["x2"]=0;
+        mLeptonTree["qscale"]=0;
+        //mLeptonTree["id1"]=m_GenEvtView->getUserRecord("f1");
+        //mLeptonTree["id2"]=m_GenEvtView->getUserRecord("f2");
+        //mLeptonTree["x1"]=m_GenEvtView->getUserRecord("x1");
+        //mLeptonTree["x2"]=m_GenEvtView->getUserRecord("x2");
+        //mLeptonTree["qscale"]=m_GenEvtView->getUserRecord("Q");
     }
-    //general
+    //general*/
     mLeptonTree["ThisWeight"]=weight;
-    //mLeptonTree["lepton_type"]=sel_lepton->getUserRecord("id");
+
+    //needed when using different leptons
+    /*//mLeptonTree["lepton_type"]=sel_lepton->getUserRecord("id");
     mLeptonTree["lepton_type"]=sel_lepton->getPdgNumber();
     if(abs(sel_lepton->getPdgNumber())==11){
         mLeptonTree["highEtEleTrig"]=highEtTriggStored;
     }else{
         mLeptonTree["highEtEleTrig"]=0;
     }*/
-    //helper.Tree_Filler("slimtree");
+    helper->Tree_Filler("slimtree");
 }
 
 void MiniAODAnalyzer::Fill_QCD_Tree(bool iso){
@@ -1435,7 +1446,7 @@ void MiniAODAnalyzer::Fill_QCD_Tree(bool iso){
         mQCDTree["mt"]=MT(sel_lepton,sel_met);
         mQCDTree["eta"]=sel_lepton->getEta();
         mQCDTree["delta_phi"]=DeltaPhi(sel_lepton,sel_met);
-        mQCDTree["nvert"]=m_RecEvtView->getUserRecord("NumVertices");
+        mQCDTree["nvert"]=m_RecEvtView->getUserRecord("NumVertices");  // if there was a dependence on the nvertices, build dependend fakerate
         if (sel_lepton->getCharge() > 0){
             mQCDTree["mtpos"]=MT(sel_lepton,sel_met);
         }
