@@ -116,6 +116,24 @@ private:
   std::unordered_map< std::string,TH1D* > mSystHist;
   virtual void SetSystMap();
 
+
+  //kfactor
+  double applyWKfactor(int mode);
+  std::string KFactorE_ ;
+  std::string KFactorMu_ ;
+  std::string KFactorTau_ ;
+  TFile* m_kfactorFile_ele;
+  TFile* m_kfactorFile_muo;
+  TFile* m_kfactorFile_tau;
+  TH1D* m_kfactorHist_ele[3];
+  TH1D* m_kfactorHist_muo[3];
+  TH1D* m_kfactorHist_tau[3];
+  std::string sourceFileString;
+  double WtoInt;
+  double WJetsInt;
+  int getWdecay();
+  double getWmass();
+
   // ----------member data ---------------------------
   edm::LumiReWeighting LumiWeights_;
   edm::EDGetTokenT<reco::VertexCollection> vtxToken_;
@@ -250,6 +268,10 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
   //usesResource("TFileService");
   pileupMC_ = iConfig.getParameter<std::string>("PileupMCFile") ;
   pileupData_ = iConfig.getParameter<std::string>("PileupDataFile") ;
+  KFactorE_ = iConfig.getParameter<std::string>("KFactorE") ;
+  KFactorMu_ = iConfig.getParameter<std::string>("KFactorMu") ;
+  KFactorTau_ = iConfig.getParameter<std::string>("KFactorTau") ;
+  sourceFileString=iConfig.getParameter<std::string>("sourceFileString");
   rootFile_   = TFile::Open(outputFile_.c_str(),"RECREATE"); // open output file to store histograms
   TFileDirectory histoDir = fs->mkdir("histoDir");
   TFileDirectory crossDir = fs->mkdir("crossDir");
@@ -369,7 +391,21 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
   h1_MT_Stage1_TauScaleDown_diff = crossDir.make<TH1D>("mT_Stage1_TauScaleDown_diff", "MT_Stage1_TauScaleDown_diff", 2000, 0, 2000);
   ///crosscheck
 
+  ///k-factor
+  m_kfactorFile_ele= new TFile(KFactorE_.c_str(),"READ");
+  m_kfactorHist_ele[0] = (TH1D*) m_kfactorFile_ele->Get("k_fac_p");
+  m_kfactorHist_ele[1] = (TH1D*) m_kfactorFile_ele->Get("k_fac_m");
+  m_kfactorHist_ele[2] = (TH1D*) m_kfactorFile_ele->Get("k_fac_mean");
 
+  m_kfactorFile_muo= new TFile(KFactorMu_.c_str(),"READ");
+  m_kfactorHist_muo[0] = (TH1D*) m_kfactorFile_muo->Get("k_fac_p");
+  m_kfactorHist_muo[1] = (TH1D*) m_kfactorFile_muo->Get("k_fac_m");
+  m_kfactorHist_muo[2] = (TH1D*) m_kfactorFile_muo->Get("k_fac_mean");
+
+  m_kfactorFile_tau= new TFile(KFactorTau_.c_str(),"READ");
+  m_kfactorHist_tau[0] = (TH1D*) m_kfactorFile_tau->Get("k_fac_p");
+  m_kfactorHist_tau[1] = (TH1D*) m_kfactorFile_tau->Get("k_fac_m");
+  m_kfactorHist_tau[2] = (TH1D*) m_kfactorFile_tau->Get("k_fac_mean");
 
 
   h1_recoVtx_NoPUWt = histoDir.make<TH1D>("recoVtx_NoPUWt", "RecoVtx_NoPUWt", 100, 0, 100);
@@ -470,7 +506,7 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
   if (!RunOnData) {
     //--GenParticles--//
     Handle<edm::View<reco::GenParticle> > pruned;
-    std::cout << pruned <<
+    //std::cout << pruned <<
     iEvent.getByToken(prunedGenToken_,pruned);
 
     Handle<edm::View<pat::PackedGenParticle> > packed;
@@ -485,7 +521,7 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
       h1_TauPt_Gen->Fill(TauPt_Gen);
       tauGen_p4[nGenTau].SetPxPyPzE(MyTau->px(),MyTau->py(),MyTau->pz(),MyTau->energy());
       nGenTau++;
-      // std::cout << " pt " << TauPt_Gen << " nMother=" << MyTau->numberOfMothers() << " mother pdgID = " << MyTau->mother(0)->pdgId() << " mother status = " << MyTau->mother(0)->status()  << std::endl;
+       std::cout << " pt " << TauPt_Gen << " nMother=" << MyTau->numberOfMothers() << " mother pdgID = " << MyTau->mother(0)->pdgId() << " mother status = " << MyTau->mother(0)->status()  << std::endl;
       //  const Candidate * MotherOfMyTau=MyTau->mother(0);
     }
       }
@@ -1290,6 +1326,8 @@ MiniAODAnalyzer::endJob()
   //TFileDirectory subDir = fs->mkdir( "mySubDirectory" ); //testing
   //subDir.cd();
   //helper.WriteTree("qcdtree");
+
+  applyWKfactor(1);
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
@@ -1581,6 +1619,95 @@ void MiniAODAnalyzer::SetSystMap(){
 
 
 
+double MiniAODAnalyzer::applyWKfactor(int mode){
+
+    WtoInt=sourceFileString.find("Wto");
+    WJetsInt=sourceFileString.find("WJets");
+
+    std::cout << std::endl<< sourceFileString << " "<< WtoInt
+    << " " << WJetsInt    <<  " " << std::string::npos << std::endl;
+    std::cout << sourceFileString.find("Wto") << std::endl;
+
+    bool applyKfactor=false;
+    if (WtoInt!=std::string::npos or WJetsInt!=std::string::npos){
+        applyKfactor=true;
+    }
+    std::cout << applyKfactor << std::endl;
+
+    //return 1;
+
+    if( not (mode==1 || mode==0) ){
+        throw std::runtime_error("specialAna.cc: The k-faktor must be additive (mode=0) or multiplicative (mode=1) yours is "+std::to_string(mode));
+    }
+/*
+    if (applyKFactor_==true){
+        double mass=getWmass();
+        int leptonID=getWdecay();
+        double k_faktor=1.;
+        if(mass>0){
+            if(leptonID==11){
+                k_faktor=m_kfactorHist_ele[mode]->GetBinContent(m_kfactorHist_ele[mode]->FindBin(mass));
+            }else if(leptonID==13){
+                k_faktor=m_kfactorHist_muo[mode]->GetBinContent(m_kfactorHist_muo[mode]->FindBin(mass));
+            }else if(leptonID==15){
+                k_faktor=m_kfactorHist_tau[mode]->GetBinContent(m_kfactorHist_tau[mode]->FindBin(mass));
+            }
+        }
+        if (k_faktor<0){
+            k_faktor=1.;
+        }
+        //weight*=k_faktor;
+        return k_faktor;
+    }
+    else{
+        return 1;
+    }*/
+    return 1;
+}
+
+
+int MiniAODAnalyzer::getWdecay(){
+    //for(uint i = 0; i < S3ListGen->size(); i++){
+        //int pdgCode= abs(S3ListGen->at(i)->getPdgNumber());
+        //if(pdgCode==11 or pdgCode==13 or pdgCode==15){
+            //return pdgCode;
+        //}
+    //}
+    //return 11;
+    return -1;
+}
+
+
+double MiniAODAnalyzer::getWmass(){
+    //if(wmass_stored!=0){
+        //return wmass_stored;
+    //}
+    //pxl::Particle* lepton=0;
+    //pxl::Particle* neutrino=0;
+    //for(uint i = 0; i < S3ListGen->size(); i++){
+        //if (abs(S3ListGen->at(i)->getPdgNumber())==24 and S3ListGen->at(i)->getMass()>5){
+            //wmass_stored=S3ListGen->at(i)->getMass();
+            //return wmass_stored;
+        //}
+        //int pdgCode= abs(S3ListGen->at(i)->getPdgNumber());
+        //if((pdgCode==11 or pdgCode==13 or pdgCode==15) and lepton==0){
+            //lepton=S3ListGen->at(i);
+        //}
+        //if((pdgCode==12 or pdgCode==14 or pdgCode==16) and neutrino==0){
+            //neutrino=S3ListGen->at(i);
+        //}
+    //}
+    //if(neutrino!=0 and lepton!=0){
+        //wmass_stored=Mass(neutrino,lepton);
+        //return wmass_stored;
+    //}else{
+        //wmass_stored=-1;
+        //return wmass_stored;
+    //}
+    //wmass_stored=-1;
+    //return wmass_stored;
+    return -1;
+}
 
 
 //define this as a plug-in
