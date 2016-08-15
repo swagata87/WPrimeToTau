@@ -118,10 +118,10 @@ private:
 
 
   //kfactor
-  double applyWKfactor(int mode);
-  std::string KFactorE_ ;
-  std::string KFactorMu_ ;
-  std::string KFactorTau_ ;
+  double applyWKfactor(int mode,edm::Handle<edm::View<reco::GenParticle>> genPart);
+  std::string KFactorE_;
+  std::string KFactorMu_;
+  std::string KFactorTau_;
   TFile* m_kfactorFile_ele;
   TFile* m_kfactorFile_muo;
   TFile* m_kfactorFile_tau;
@@ -131,8 +131,10 @@ private:
   std::string sourceFileString;
   double WtoInt;
   double WJetsInt;
-  int getWdecay();
-  double getWmass();
+  int getWdecay(edm::Handle<edm::View<reco::GenParticle>> genPart);
+  double getWmass(edm::Handle<edm::View<reco::GenParticle>> genPart);
+  double wmass_stored;
+  double k_fak_stored;
 
   // ----------member data ---------------------------
   edm::LumiReWeighting LumiWeights_;
@@ -408,6 +410,7 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
   m_kfactorHist_tau[2] = (TH1D*) m_kfactorFile_tau->Get("k_fac_mean");
 
 
+
   h1_recoVtx_NoPUWt = histoDir.make<TH1D>("recoVtx_NoPUWt", "RecoVtx_NoPUWt", 100, 0, 100);
   h1_recoVtx_WithPUWt = histoDir.make<TH1D>("recoVtx_WithPUWt", "RecoVtx_WithPUWt", 100, 0, 100);
 
@@ -449,6 +452,9 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
   Event = iEvent.id().event();
   //std::cout << "\n --EVENT-- " << Event << std::endl;
 
+
+  //-- kfactor --//
+  wmass_stored=0;
   //-- probValue --//
   //-- https://github.com/cms-sw/cmssw/blob/CMSSW_8_1_X/SimGeneral/MixingModule/python/mix_2016_25ns_SpringMC_PUScenarioV1_PoissonOOTPU_cfi.py --//
   //----------//
@@ -503,6 +509,8 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
   const Candidate * MyTau;
   // const Candidate * MyTauSel=0;
   double TauPt_Gen=0;
+
+  k_fak_stored=1;
   if (!RunOnData) {
     //--GenParticles--//
     Handle<edm::View<reco::GenParticle> > pruned;
@@ -512,20 +520,34 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
     Handle<edm::View<pat::PackedGenParticle> > packed;
     iEvent.getByToken(packedGenToken_,packed);
 
+
+    ///-- W k-factor --///
+    k_fak_stored=applyWKfactor(1,pruned);
+    //std::cout << k_fak_stored << std::endl;
+    final_weight=final_weight*k_fak_stored;
+
+
+
     for(size_t i=0; i<pruned->size();i++){
-      if(   (abs((*pruned)[i].pdgId())==15) && ( ((*pruned)[i].status()==2) )) {
-    MyTau = &(*pruned)[i];
-    if ( (MyTau->pt()>20.0)  &&  (fabs(MyTau->eta())<2.3)  )  {
-      // MyTauSel=MyTau;
-      TauPt_Gen=MyTau->pt();
-      h1_TauPt_Gen->Fill(TauPt_Gen);
-      tauGen_p4[nGenTau].SetPxPyPzE(MyTau->px(),MyTau->py(),MyTau->pz(),MyTau->energy());
-      nGenTau++;
-       std::cout << " pt " << TauPt_Gen << " nMother=" << MyTau->numberOfMothers() << " mother pdgID = " << MyTau->mother(0)->pdgId() << " mother status = " << MyTau->mother(0)->status()  << std::endl;
-      //  const Candidate * MotherOfMyTau=MyTau->mother(0);
-    }
+        if(   (abs((*pruned)[i].pdgId())==15) && ( ((*pruned)[i].status()==2) )) {
+            MyTau = &(*pruned)[i];
+            if ( (MyTau->pt()>20.0)  &&  (fabs(MyTau->eta())<2.3)  )  {
+                // MyTauSel=MyTau;
+                TauPt_Gen=MyTau->pt();
+                h1_TauPt_Gen->Fill(TauPt_Gen);
+                tauGen_p4[nGenTau].SetPxPyPzE(MyTau->px(),MyTau->py(),MyTau->pz(),MyTau->energy());
+                nGenTau++;
+                //std::cout << " pt " << TauPt_Gen << " nMother=" << MyTau->numberOfMothers() << " mother pdgID = " << MyTau->mother(0)->pdgId() << " mother status = " << MyTau->mother(0)->status()  << std::endl;
+                //const Candidate * MotherOfMyTau=MyTau->mother(0);
+            }
+        }
       }
-    }
+
+      //if(   (abs((*pruned)[i].pdgId())==16) && ( ((*pruned)[i].status()==2)) && (sel_tau==true)) {
+          //MyNu= &(*pruned)[i]; //used for calculating the W mass
+          //MyNu->px(); // to get rid of not use warning
+      //}
+
   }
   ////  std::cout << "nGenTau=" << nGenTau << std::endl;
   //   if ((!RunOnData) && (nGenTau>1))   std::cout << "\n#### #### #### ######### nGenTau=" << nGenTau << std::endl;
@@ -933,79 +955,7 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
                  //std::cout << "*metUncert_JetEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
                  mSystHist[std::to_string(i)]->Fill(calcMT(tau_NoShift,met,mSyst[std::to_string(i)]),final_weight);
                }
-            }/*
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::JetEnUp ) == true) ) {
-             //std::cout << "*metUncert_JetEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-             //double MT_metUncert_JetEnUp = sqrt(2*tau_pt[0]*met_val_JetEnUp*(1- cos(dphi_tau_met)));  // always use the same dphi? or shifted dphi?
-             //double MT_metUncert_JetEnUp_test = calcMT(tau_NoShift,met,pat::MET::JetEnUp);
-             //std::cout << MT_metUncert_JetEnUp << " " << MT_metUncert_JetEnUp_test << " " << MT_metUncert_JetEnUp-MT_metUncert_JetEnUp_test << std::endl;
-             h1_MT_Stage1_metUncert_JetEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::JetEnUp),final_weight);
-               }
-               ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::JetEnDown ) == true) ) {
-             //std::cout << "*metUncert_JetEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-             h1_MT_Stage1_metUncert_JetEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::JetEnDown),final_weight);
-               }
-               ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::JetResUp ) == true) ) {
-             //std::cout << "*metUncert_JetResUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-             h1_MT_Stage1_metUncert_JetResUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::JetResUp),final_weight);
-               }
-               ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::JetResDown ) == true) ) {
-             // std::cout << "*metUncert_JetResDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-             h1_MT_Stage1_metUncert_JetResDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::JetResDown),final_weight);
-               }
-               ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::MuonEnUp ) == true) ) {
-             //std::cout << "*metUncert_MuonEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-             h1_MT_Stage1_metUncert_MuonEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::MuonEnUp),final_weight);
-               }
-               ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::MuonEnDown ) == true) ) {
-             // std::cout << "*metUncert_MuonEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-             h1_MT_Stage1_metUncert_MuonEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::MuonEnDown),final_weight);
-               }
-               ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::ElectronEnUp ) == true) ) {
-             //std::cout << "*metUncert_ElectronEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-            h1_MT_Stage1_metUncert_ElectronEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::ElectronEnUp),final_weight);
-              }
-              ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::ElectronEnDown ) == true) ) {
-             //std::cout << "*metUncert_ElectronEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-             h1_MT_Stage1_metUncert_ElectronEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::ElectronEnDown),final_weight);
-              }
-              ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::TauEnUp ) == true) ) {
-             //std::cout << "*metUncert_TauEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-            h1_MT_Stage1_metUncert_TauEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::TauEnUp),final_weight);
-              }
-              ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::TauEnDown ) == true) ) {
-             //std::cout << "*metUncert_TauEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-            h1_MT_Stage1_metUncert_TauEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::TauEnDown),final_weight);
-              }
-              ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::PhotonEnUp ) == true) ) {
-             //std::cout << "*metUncert_PhotonEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-            h1_MT_Stage1_metUncert_PhotonEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::PhotonEnUp),final_weight);
-              }
-              ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::PhotonEnDown ) == true) ) {
-             //std::cout << "*metUncert_PhotonEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-            h1_MT_Stage1_metUncert_PhotonEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::PhotonEnDown),final_weight);
-              }
-              ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::   UnclusteredEnUp ) == true) ) {
-             //std::cout << "*metUncert_UnclusteredEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-            h1_MT_Stage1_metUncert_UnclusteredEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::UnclusteredEnUp),final_weight);
-              }
-               ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::UnclusteredEnDown ) == true) ) {
-             //std::cout << "*metUncert_UnclusteredEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-             h1_MT_Stage1_metUncert_UnclusteredEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::UnclusteredEnDown),final_weight);
-               }*/
+            }
                ///--Tau Scale--///
            }
            if (nGoodTau_ScaleUp==1){
@@ -1105,10 +1055,12 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
 
    mytree->Fill();
 
-   if(tau_NoShift.Pt()>80 && calcMT(tau_NoShift,met)>50){
+
+    //if(tau_NoShift.Pt()>80 && calcMT(tau_NoShift,met)>50){
        Fill_QCD_Tree(true);
        Fill_Tree(tau_NoShift,met,final_weight);
-   }
+    //}
+    //}
 #ifdef THIS_IS_AN_EVENT_EXAMPLE
    Handle<ExampleData> pIn;
    iEvent.getByLabel("example",pIn);
@@ -1327,7 +1279,7 @@ MiniAODAnalyzer::endJob()
   //subDir.cd();
   //helper.WriteTree("qcdtree");
 
-  applyWKfactor(1);
+
 }
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
@@ -1417,7 +1369,7 @@ void MiniAODAnalyzer::Fill_Tree(TLorentzVector sel_lepton, const pat::MET sel_me
     mLeptonTree["lepton_phi"]=sel_lepton.Phi();
     mLeptonTree["lepton_eta"]=sel_lepton.Eta();
     mLeptonTree["met_phi"]=sel_met.phi();
-    //mLeptonTree["kfak"]=k_fak_stored;
+    mLeptonTree["kfak"]=k_fak_stored;
     //good for crosschecks
     /*
     if(JetList->size()>0){
@@ -1617,32 +1569,28 @@ void MiniAODAnalyzer::SetSystMap(){
  * */
 
 
-
-
-double MiniAODAnalyzer::applyWKfactor(int mode){
+//double MiniAODAnalyzer::calcWKfactor(int mode,const reco::Candidate* Wcand){
+double MiniAODAnalyzer::applyWKfactor(int mode, edm::Handle<edm::View<reco::GenParticle>> genPart){
+//double MiniAODAnalyzer::applyWKfactor(int mode){
 
     WtoInt=sourceFileString.find("Wto");
     WJetsInt=sourceFileString.find("WJets");
-
-    std::cout << std::endl<< sourceFileString << " "<< WtoInt
-    << " " << WJetsInt    <<  " " << std::string::npos << std::endl;
-    std::cout << sourceFileString.find("Wto") << std::endl;
-
+    //std::cout << std::endl<< sourceFileString << " "<< WtoInt
+    //<< " " << WJetsInt    <<  " " << std::string::npos << std::endl;
+    //std::cout << sourceFileString.find("Wto") << std::endl;
     bool applyKfactor=false;
     if (WtoInt!=std::string::npos or WJetsInt!=std::string::npos){
         applyKfactor=true;
     }
-    std::cout << applyKfactor << std::endl;
-
-    //return 1;
+    //std::cout << applyKfactor << std::endl;
 
     if( not (mode==1 || mode==0) ){
         throw std::runtime_error("specialAna.cc: The k-faktor must be additive (mode=0) or multiplicative (mode=1) yours is "+std::to_string(mode));
     }
-/*
-    if (applyKFactor_==true){
-        double mass=getWmass();
-        int leptonID=getWdecay();
+
+    if (applyKfactor==true){
+        double mass=getWmass(genPart);
+        int leptonID=getWdecay(genPart);
         double k_faktor=1.;
         if(mass>0){
             if(leptonID==11){
@@ -1661,54 +1609,60 @@ double MiniAODAnalyzer::applyWKfactor(int mode){
     }
     else{
         return 1;
-    }*/
-    return 1;
+    }
 }
 
 
-int MiniAODAnalyzer::getWdecay(){
-    //for(uint i = 0; i < S3ListGen->size(); i++){
-        //int pdgCode= abs(S3ListGen->at(i)->getPdgNumber());
-        //if(pdgCode==11 or pdgCode==13 or pdgCode==15){
-            //return pdgCode;
-        //}
-    //}
-    //return 11;
-    return -1;
+int MiniAODAnalyzer::getWdecay(edm::Handle<edm::View<reco::GenParticle>> genPart){
+    int temp_id=0;
+    for(size_t i=0; i<genPart->size();i++){
+        if (abs((*genPart)[i].pdgId())==15 or abs((*genPart)[i].pdgId())==13 or abs((*genPart)[i].pdgId())==11){
+            temp_id=abs((*genPart)[i].pdgId());
+            break;
+        }
+    }
+    return temp_id;
 }
 
 
-double MiniAODAnalyzer::getWmass(){
-    //if(wmass_stored!=0){
-        //return wmass_stored;
-    //}
-    //pxl::Particle* lepton=0;
-    //pxl::Particle* neutrino=0;
-    //for(uint i = 0; i < S3ListGen->size(); i++){
-        //if (abs(S3ListGen->at(i)->getPdgNumber())==24 and S3ListGen->at(i)->getMass()>5){
-            //wmass_stored=S3ListGen->at(i)->getMass();
-            //return wmass_stored;
-        //}
-        //int pdgCode= abs(S3ListGen->at(i)->getPdgNumber());
-        //if((pdgCode==11 or pdgCode==13 or pdgCode==15) and lepton==0){
-            //lepton=S3ListGen->at(i);
-        //}
-        //if((pdgCode==12 or pdgCode==14 or pdgCode==16) and neutrino==0){
-            //neutrino=S3ListGen->at(i);
-        //}
-    //}
-    //if(neutrino!=0 and lepton!=0){
-        //wmass_stored=Mass(neutrino,lepton);
-        //return wmass_stored;
-    //}else{
-        //wmass_stored=-1;
-        //return wmass_stored;
-    //}
-    //wmass_stored=-1;
-    //return wmass_stored;
-    return -1;
-}
+double MiniAODAnalyzer::getWmass(edm::Handle<edm::View<reco::GenParticle>> genPart){
+    //std::cout << "wmass_stored is " << wmass_stored << std::endl;
+    if(wmass_stored!=0){
+        return wmass_stored;
+    }
+    double temp_W_mass=0;
+    bool First=false;
+    bool second=false;
+    int temp_i=0;
 
+    for(size_t i=0; i<genPart->size();i++){
+        if(abs((*genPart)[i].pdgId())==24 && First==false){
+            //std::cout << "ID is " << (*genPart)[i].pdgId() << std::endl;
+            //std::cout << "W mass from W is " << (*genPart)[i].mass() << std::endl;
+            First=true;
+            temp_W_mass=(*genPart)[i].mass();
+            break;
+        }
+        if (second==false){
+            if (abs((*genPart)[i].pdgId())==15 or abs((*genPart)[i].pdgId())==13 or abs((*genPart)[i].pdgId())==11){
+                temp_i=i;
+                second=true;
+                break;
+            }
+        }
+    }
+    if (second==true){
+        for(size_t i=0; i<genPart->size();i++){
+            int sign=(*genPart)[temp_i].pdgId()/abs((*genPart)[temp_i].pdgId());
+            if ( (*genPart)[i].pdgId()==(-1*((*genPart)[temp_i].pdgId()+sign))){
+                temp_W_mass=((*genPart)[i].p4()+(*genPart)[temp_i].p4()).mass();
+                break;
+            }
+        }
+    }
+    wmass_stored=temp_W_mass;
+    return wmass_stored;
+}
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(MiniAODAnalyzer);
