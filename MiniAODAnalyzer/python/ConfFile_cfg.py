@@ -49,6 +49,7 @@ process.demo = cms.EDAnalyzer('MiniAODAnalyzer',
        KFactorMu = cms.string("configFiles/k_faktors_mu.root"),
        KFactorTau = cms.string("configFiles/k_faktors_tau.root"),
        sourceFileString = cms.string(process.source_().dumpConfig().split('\n')[2].split("/")[4]),
+       useReweighting = cms.bool(True),
 )
 
 process.out = cms.OutputModule("PoolOutputModule",
