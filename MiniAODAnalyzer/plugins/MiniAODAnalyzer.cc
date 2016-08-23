@@ -147,6 +147,7 @@ private:
   //reweighting stuff
   bool useReweighting;
   void setShiftedTree(TLorentzVector sel_lepton, const pat::MET sel_met,double weight, pat::MET::METUncertainty metUncert);
+  void setShiftedTree(TLorentzVector sel_lepton, const pat::MET sel_met, double weight);
 
   // ----------member data ---------------------------
   edm::LumiReWeighting LumiWeights_;
@@ -208,6 +209,8 @@ private:
   TH1D *h1_MT_Stage1_metUncert_UnclusteredEnDown;
   TH1D *h1_MT_Stage1_TauScaleUp;
   TH1D *h1_MT_Stage1_TauScaleDown;
+  TH1D *h1_MT_Stage1_kFactorUp;
+  TH1D *h1_MT_Stage1_kFactorDown;
 
   ///crosscheck
   TH1D *h1_MT_Stage1_metUncert_JetEnUp_new;
@@ -370,6 +373,8 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
   h1_MT_Stage1_metUncert_UnclusteredEnDown = histoDir.make<TH1D>("mT_Stage1_metUncert_UnclusteredEnDown", "MT_Stage1_metUncert_UnclusteredEnDown", 2000, 0, 2000);
   h1_MT_Stage1_TauScaleUp = histoDir.make<TH1D>("mT_Stage1_TauScaleUp", "MT_Stage1_TauScaleUp", 2000, 0, 2000);
   h1_MT_Stage1_TauScaleDown = histoDir.make<TH1D>("mT_Stage1_TauScaleDown", "MT_Stage1_TauScaleDown", 2000, 0, 2000);
+  h1_MT_Stage1_kFactorUp = histoDir.make<TH1D>("mT_Stage1_kFactorUp", "MT_Stage1_kFactorUp", 2000, 0, 2000);
+  h1_MT_Stage1_kFactorDown = histoDir.make<TH1D>("mT_Stage1_kFactorDown", "MT_Stage1_kFactorDown", 2000, 0, 2000);
 
   ///crosscheck
   h1_MT_Stage1_metUncert_JetEnUp_new = crossDir.make<TH1D>("mT_Stage1_metUncert_JetEnUp_new", "MT_Stage1_metUncert_JetEnUp_new", 2000, 0, 2000);
@@ -976,6 +981,16 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
                  setShiftedTree(tau_NoShift, met, final_weight, mSyst[std::to_string(i)]);
                }
             }
+            for (int i=15;i<=16;i++){
+                double kFactorShift=1.;
+                if (i==15){ kFactorShift=1.05;}
+                else if (i==16){ kFactorShift=0.95;}
+                if ( (PassFinalCuts(tau_NoShift,met) == true) ) {
+                 //std::cout << "*metUncert_JetEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
+                 mSystHist[std::to_string(i)]->Fill(calcMT(tau_NoShift,met),final_weight*kFactorShift);
+                 setShiftedTree(tau_NoShift, met, final_weight*kFactorShift);
+               }
+            }
                ///--Tau Scale--///
            }
            if (nGoodTau_ScaleUp==1){
@@ -1316,6 +1331,7 @@ MiniAODAnalyzer::endJob()
 
 
   ///crosscheck
+  /*
   h1_MT_Stage1_metUncert_JetEnUp_diff->Add(h1_MT_Stage1_metUncert_JetEnUp_new,1);
   h1_MT_Stage1_metUncert_JetEnUp_diff->Add(h1_MT_Stage1_metUncert_JetEnUp,-1);
   h1_MT_Stage1_metUncert_JetEnDown_diff->Add(h1_MT_Stage1_metUncert_JetEnDown_new,1);
@@ -1348,7 +1364,7 @@ MiniAODAnalyzer::endJob()
   h1_MT_Stage1_TauScaleUp_diff->Add(h1_MT_Stage1_TauScaleUp,-1);
   h1_MT_Stage1_TauScaleDown_diff->Add(h1_MT_Stage1_TauScaleDown_new,1);
   h1_MT_Stage1_TauScaleDown_diff->Add(h1_MT_Stage1_TauScaleDown,-1);
-
+*/
   //TFileDirectory subDir = fs->mkdir( "mySubDirectory" ); //testing
   //subDir.cd();
   //helper.WriteTree("qcdtree");
@@ -1407,7 +1423,7 @@ void MiniAODAnalyzer::Create_Trees(){
 
   if(useReweighting==true){
       mLeptonTree["gen_mt"]=-10;
-      for (int i=0; i<14;i++){
+      for (int i=0; i<=16;i++){
           mLeptonTree["gen_mt_"+mSystName[std::to_string(i)]]=-10;
           mLeptonTree["mt_"+mSystName[std::to_string(i)]]=-10;
           mLeptonTree["delta_phi_"+mSystName[std::to_string(i)]]=-10;
@@ -1449,17 +1465,42 @@ void MiniAODAnalyzer::setShiftedTree(TLorentzVector sel_lepton, const pat::MET s
     if(useReweighting==true){
         for (int i=1;i<=14;i++){
             if ( (PassFinalCuts(sel_lepton,sel_met,mSyst[std::to_string(i)] ) == true) ) {
-                mLeptonTree["gen_mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met);//gen
+                mLeptonTree["gen_mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met);//gen, has to be fixed
                 mLeptonTree["mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met,mSyst[std::to_string(i)]);
                 mLeptonTree["met_"+mSystName[std::to_string(i)]]=sel_met.shiftedPhi(metUncert);
                 mLeptonTree["delta_phi_"+mSystName[std::to_string(i)]]=deltaPhi(sel_lepton.Phi(),sel_met.shiftedPhi(metUncert));
                 mLeptonTree["ThisWeight_"+mSystName[std::to_string(i)]]=weight;
             }
         }
+        //for (int i=15;i<=16;i++){
+            //if ( (PassFinalCuts(sel_lepton,sel_met,mSyst[std::to_string(i)] ) == true) ) {
+                //mLeptonTree["gen_mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met);//gen, has to be fixed
+                //mLeptonTree["mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met,mSyst[std::to_string(i)]);
+                //mLeptonTree["met_"+mSystName[std::to_string(i)]]=sel_met.shiftedPhi(metUncert);
+                //mLeptonTree["delta_phi_"+mSystName[std::to_string(i)]]=deltaPhi(sel_lepton.Phi(),sel_met.shiftedPhi(metUncert));
+                //mLeptonTree["ThisWeight_"+mSystName[std::to_string(i)]]=weight;
+            //}
+        //}
 
     }
-    else{
-        mLeptonTree["gen_mt"]=calcMT(sel_lepton,sel_met);//gen
+    //else{
+        //mLeptonTree["gen_mt"]=calcMT(sel_lepton,sel_met);//gen
+    //}
+
+}
+void MiniAODAnalyzer::setShiftedTree(TLorentzVector sel_lepton, const pat::MET sel_met, double weight){
+
+    if(useReweighting==true){
+        for (int i=15;i<=16;i++){
+            //std::cout << i << std::endl;
+            if ( (PassFinalCuts(sel_lepton,sel_met,mSyst[std::to_string(i)] ) == true) ) {
+                mLeptonTree["gen_mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met);//gen, has to be fixed
+                mLeptonTree["mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met);
+                mLeptonTree["met_"+mSystName[std::to_string(i)]]=sel_met.phi();
+                mLeptonTree["delta_phi_"+mSystName[std::to_string(i)]]=deltaPhi(sel_lepton.Phi(),sel_met.phi());
+                mLeptonTree["ThisWeight_"+mSystName[std::to_string(i)]]=weight;
+            }
+        }
     }
 
 }
@@ -1673,6 +1714,12 @@ void MiniAODAnalyzer::SetSystMap(){
   mSyst["14"]=pat::MET::UnclusteredEnDown;
   mSystHist["14"]=h1_MT_Stage1_metUncert_UnclusteredEnDown_new;
   mSystName["14"]="UnclusteredEnDown";
+  //mSyst["15"]=0;
+  mSystHist["15"]=h1_MT_Stage1_kFactorUp;
+  mSystName["15"]="kFactorUp";
+  //mSyst["16"]=0;
+  mSystHist["16"]=h1_MT_Stage1_kFactorDown;
+  mSystName["16"]="kFactorDown";
     }
 
 /*
@@ -1686,9 +1733,7 @@ void MiniAODAnalyzer::SetSystMap(){
  * */
 
 
-//double MiniAODAnalyzer::calcWKfactor(int mode,const reco::Candidate* Wcand){
 double MiniAODAnalyzer::applyWKfactor(int mode, edm::Handle<edm::View<reco::GenParticle>> genPart){
-//double MiniAODAnalyzer::applyWKfactor(int mode){
 
     WtoInt=sourceFileString.find("Wto");
     WJetsInt=sourceFileString.find("WJets");
@@ -1701,6 +1746,7 @@ double MiniAODAnalyzer::applyWKfactor(int mode, edm::Handle<edm::View<reco::GenP
     }
     //std::cout << applyKfactor << std::endl;
 
+    ///--- mode 1 (multiplicative) is legacy and should not be used ---///
     if( not (mode==1 || mode==0) ){
         throw std::runtime_error("specialAna.cc: The k-faktor must be additive (mode=0) or multiplicative (mode=1) yours is "+std::to_string(mode));
     }
