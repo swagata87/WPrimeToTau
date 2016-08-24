@@ -103,6 +103,7 @@ private:
   bool PassTauAcceptance(TLorentzVector tau);
   bool FindTauIDEfficiency(const edm::Event&,TLorentzVector gen_p4);
   bool PassFinalCuts(int nGoodTau_, double met_val_, double met_phi_, double tau_pt_, double ptau_phi_);
+  bool PassLooseCuts1(int nGoodTau_, double met_val_);
 
   std::vector<int> pdf_indices;
   std::vector<double> inpdfweights;
@@ -176,6 +177,9 @@ private:
   TH1D *h1_TauPt_RegD_Stage1;
   TH1D *h1_TauPt_GenMatchedTau_RegD_Stage1;
   TH1D *h1_MT_Stage1;
+  //
+  TH1D *h1_MT_Stage2;
+  //
   TH1D *h1_MT_RegA_Stage1;
   TH1D *h1_MT_RegC_Stage1;
   TH1D *h1_MT_GenMatchedTau_RegC_Stage1;
@@ -195,8 +199,13 @@ private:
   TH1D *h1_MT_Stage1_metUncert_PhotonEnDown;
   TH1D *h1_MT_Stage1_metUncert_UnclusteredEnUp;
   TH1D *h1_MT_Stage1_metUncert_UnclusteredEnDown;
+  //
   TH1D *h1_MT_Stage1_TauScaleUp;
   TH1D *h1_MT_Stage1_TauScaleDown;
+  //
+  TH1D *h1_MT_Stage1_TauIDEffUncertUp;
+  TH1D *h1_MT_Stage1_TauIDEffUncertDown;
+  //
   TH1D *h1_MT_Stage1_pileupUncertUp;
   TH1D *h1_MT_Stage1_pileupUncertDown;
   TH1D *h1_MT_Stage1_pdfUncertUp;
@@ -321,6 +330,9 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
   h1_TauPt_RegD_Stage1 = histoDir.make<TH1D>("tauPt_RegD_Stage1", "TauPt_RegD_Stage1", 100, 0, 1000);
   h1_TauPt_GenMatchedTau_RegD_Stage1 = histoDir.make<TH1D>("tauPt_GenMatchedTau_RegD_Stage1", "TauPt_GenMatchedTau_RegD_Stage1", 100, 0, 1000);
   h1_MT_Stage1 = histoDir.make<TH1D>("mT_Stage1", "MT_Stage1", nbinMT, xlowMT, xupMT);
+  //
+  h1_MT_Stage2 = histoDir.make<TH1D>("mT_Stage2", "MT_Stage2", nbinMT, xlowMT, xupMT);
+  //
   h1_MT_RegA_Stage1 = histoDir.make<TH1D>("mT_RegA_Stage1", "MT_RegA_Stage1", nbinMT, xlowMT, xupMT);
   h1_MT_RegC_Stage1 = histoDir.make<TH1D>("mT_RegC_Stage1", "MT_RegC_Stage1", nbinMT, xlowMT, xupMT);
   h1_MT_GenMatchedTau_RegC_Stage1 = histoDir.make<TH1D>("mT_GenMatchedTau_RegC_Stage1", "MT_GenMatchedTau_RegC_Stage1", nbinMT, xlowMT, xupMT);
@@ -342,6 +354,10 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
   h1_MT_Stage1_metUncert_UnclusteredEnDown = histoDir.make<TH1D>("mT_Stage1_metUncert_UnclusteredEnDown", "MT_Stage1_metUncert_UnclusteredEnDown", nbinMT, xlowMT, xupMT);
   h1_MT_Stage1_TauScaleUp = histoDir.make<TH1D>("mT_Stage1_TauScaleUp", "MT_Stage1_TauScaleUp", nbinMT, xlowMT, xupMT);
   h1_MT_Stage1_TauScaleDown = histoDir.make<TH1D>("mT_Stage1_TauScaleDown", "MT_Stage1_TauScaleDown", nbinMT, xlowMT, xupMT);
+  //   TauID Eff Uncert;
+  h1_MT_Stage1_TauIDEffUncertUp = histoDir.make<TH1D>("mT_Stage1_TauIDEffUncertUp", "MT_Stage1_TauIDEffUncertUp", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_TauIDEffUncertDown = histoDir.make<TH1D>("mT_Stage1_TauIDEffUncertDown", "MT_Stage1_TauIDEffUncertDown", nbinMT, xlowMT, xupMT);
+  //
   h1_MT_Stage1_pileupUncertUp = histoDir.make<TH1D>("mT_Stage1_pileupUncertUp", "MT_Stage1_pileupUncertUp", nbinMT, xlowMT, xupMT);
   h1_MT_Stage1_pileupUncertDown =histoDir.make<TH1D>("mT_Stage1_pileupUncertDown", "MT_Stage1_pileupUncertDown", nbinMT, xlowMT, xupMT); 
   if ( doPDFuncertainty ) {
@@ -402,7 +418,7 @@ void MiniAODAnalyzer::beginRun( edm::Run const &iRun, edm::EventSetup const &iSe
       typedef std::vector<LHERunInfoProduct::Header>::const_iterator headers_const_iterator;
       iRun.getByLabel( lheString , run );
       if ( run.isValid()) {
-	std::cout << "Take pdf weights from CMSSW" << std::endl;
+	//	std::cout << "Take pdf weights from CMSSW" << std::endl;
 	LHERunInfoProduct myLHERunInfoProduct = *(run.product());
         std::vector<std::string> weight_lines;
 	for (headers_const_iterator iter=myLHERunInfoProduct.headers_begin(); iter!=myLHERunInfoProduct.headers_end(); iter++){
@@ -560,7 +576,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     if  ( !(RunOnData) ) {
       iEvent.getByToken( LHEEventToken_ , EvtHandle ) ;
       if  ( (EvtHandle.isValid()) ) {
-	std::cout << "Take pdf weights from CMSSW" << std::endl;
+	//	std::cout << "Take pdf weights from CMSSW" << std::endl;
 	inpdfweights.clear(); 
 	
 	//  if  ( !(RunOnData) && (EvtHandle.isValid()) ) {
@@ -588,13 +604,21 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
       }
     }
   }
+
+  //-------------------//
+  //-- Tau ID Eff Wt --//
+  //-------------------//
+  double tauIDeff_Wt = 1.0;
+  double tauIDeff_Wt_UP = 1.0;
+  double tauIDeff_Wt_DOWN = 1.0;
+
   //----------------//
   //--Final Weight--//
   //----------------//
   if (!RunOnData) {
-    final_weight               =Lumi_Wt*mc_event_weight;
-    final_weight_PUweight_UP   =Lumi_Wt_UP*mc_event_weight;
-    final_weight_PUweight_DOWN =Lumi_Wt_DOWN*mc_event_weight;
+    final_weight               =Lumi_Wt * mc_event_weight * tauIDeff_Wt;
+    final_weight_PUweight_UP   =Lumi_Wt_UP * mc_event_weight * tauIDeff_Wt;
+    final_weight_PUweight_DOWN =Lumi_Wt_DOWN * mc_event_weight * tauIDeff_Wt;
     
   }
   else {
@@ -935,6 +959,12 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
    if (passTauTrig && passAllMETFilters ) {
      if ( (nvtx>0) && (nTightMu==0) && (nLooseEle==0) ) {
+       //** Stage2 = No cut on pT/ETmiss and dPhi(tau,ETmiss)
+       if ( (PassLooseCuts1(nGoodTau, met_val) == true) ) {
+	 double dphi_tau_met_Stage2 = deltaPhi(tau_phi[0],met_phi);
+	 double MT_Stage2=  sqrt(2*tau_pt[0]*met_val*(1- cos(dphi_tau_met_Stage2)));
+         h1_MT_Stage2->Fill(MT_Stage2,final_weight);
+       }
        //** Stage1 = final stage (all cuts applied) **//
        if ( (PassFinalCuts(nGoodTau, met_val,met_phi,tau_pt[0],tau_phi[0]) == true) ) {
 	 h1_recoVtx_NoPUWt->Fill(recoVtx,mc_event_weight);
@@ -946,7 +976,17 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 	 //--PU Systematics--//
 	 h1_MT_Stage1_pileupUncertUp->Fill(MT,final_weight_PUweight_UP);
 	 h1_MT_Stage1_pileupUncertDown->Fill(MT,final_weight_PUweight_DOWN);
-
+	 //--tauIDeff_Wt_UP--//
+	 if (!RunOnData) {
+	   tauIDeff_Wt_UP   = tauIDeff_Wt + (tauIDeff_Wt*(6.0/100.0)) + ((tau_pt[0]/1000.0)*(20.0/100.0)) ;
+	   tauIDeff_Wt_DOWN = tauIDeff_Wt - (tauIDeff_Wt*(6.0/100.0)) - ((tau_pt[0]/1000.0)*(20.0/100.0)) ;
+	 }
+	 double final_weight_tauIDeff_Wt_UP   = final_weight * tauIDeff_Wt_UP ;
+	 double final_weight_tauIDeff_Wt_DOWN = final_weight * tauIDeff_Wt_DOWN ;
+	 h1_MT_Stage1_TauIDEffUncertUp->Fill(MT, final_weight_tauIDeff_Wt_UP);
+         h1_MT_Stage1_TauIDEffUncertDown->Fill(MT, final_weight_tauIDeff_Wt_DOWN);
+	 //std::cout << "tauIDeff_Wt_UP = " << tauIDeff_Wt_UP << " tauIDeff_Wt_DOWN = " << tauIDeff_Wt_DOWN << std::endl; 
+	 //
 	 if ( doPDFuncertainty) {
 	   //--PDF Systematics--//
 	   // std::cout << "Evt selected. Size of inpdfweights = " << inpdfweights.size() << std::endl; 
@@ -1157,12 +1197,22 @@ bool MiniAODAnalyzer::PassFinalCuts(int nGoodTau_, double met_val_,double met_ph
       dphi_tau_met = deltaPhi(tau_phi_,met_phi_);
       double pToverEtMiss=tau_pt_/met_val_ ;
       if (pToverEtMiss>0.7 && pToverEtMiss<1.3) {
-    // std::cout << "pToverEtMiss=" << pToverEtMiss << std::endl;
-    if (dphi_tau_met>2.4) {
-      // std::cout << "dphi_tau_met=" << dphi_tau_met << std::endl;
-      passed=true;
-    }
+	// std::cout << "pToverEtMiss=" << pToverEtMiss << std::endl;
+	if (dphi_tau_met>2.4) {
+	  // std::cout << "dphi_tau_met=" << dphi_tau_met << std::endl;
+	  passed=true;
+	}
       }
+    }
+  }
+  return passed;
+}
+
+bool MiniAODAnalyzer::PassLooseCuts1(int nGoodTau_, double met_val_) {
+  bool passed=false;
+  if (nGoodTau_==1) {
+    if ( met_val_>120 ) {
+      passed=true;
     }
   }
   return passed;
