@@ -104,6 +104,7 @@ private:
 
   std::unordered_map< std::string,float > mLeptonTree;
   std::unordered_map< std::string,float > mQCDTree;
+  std::unordered_map< std::string,float > mFakeTree;
   edm::Service<TFileService> fs;
   Helper* helper =new Helper(fs);
 
@@ -112,6 +113,9 @@ private:
   double calcMT(TLorentzVector part1, TLorentzVector part2);
   double calcMT(TLorentzVector part1, const pat::MET part2);
   double calcMT(TLorentzVector part1, const pat::MET part2, pat::MET::METUncertainty metUncert);
+  double calcMT(const pat::Electron part1, const pat::MET part2);
+  double calcMT(const pat::Muon part1, const pat::MET part2);
+  double calcMT(const pat::Tau part1, const pat::MET part2);
   std::unordered_map< std::string,pat::MET::METUncertainty > mSyst;
   std::unordered_map< std::string,TH1D* > mSystHist;
   std::unordered_map< std::string,std::string > mSystName;
@@ -120,6 +124,11 @@ private:
   //deltaR calculation
   double DeltaR(pat::Electron part ,pat::Tau tau);
   double DeltaR(pat::Muon part,pat::Tau tau);
+
+  //deltaPhi calculation
+  double DeltaPhi(pat::Electron part1, pat::MET part2);
+  double DeltaPhi(pat::Muon part1, pat::MET part2);
+  double DeltaPhi(pat::Tau part1, pat::MET part2);
 
   //kfactor
   double applyWKfactor(int mode,edm::Handle<edm::View<reco::GenParticle>> genPart);
@@ -145,12 +154,15 @@ private:
   //QCD stuff
   void QCDAnalyse();
   //void QCDAnalyseTau(edm::Handle<std::vector<pat::Muon> >*list, edm::Handle<std::vector<pat::Tau> >*tauList);
-  void QCDAnalyseTau(std::vector<pat::Electron> EleList,std::vector<pat::Muon> MuonList, std::vector<pat::Tau> tauList);
+  void QCDAnalyseTau(std::vector<pat::Electron> EleList,std::vector<pat::Muon> MuonList, std::vector<pat::Tau> tauList,const pat::MET sel_met,double weight);
   int vetoNumberEle(std::vector<pat::Electron> list, double ptTreshold,std::vector<pat::Tau> tauList,double vetoConeSize);
   int vetoNumberMuon(std::vector<pat::Muon> list, double ptTreshold,std::vector<pat::Tau> tauList,double vetoConeSize);
   int vetoNumberTau(std::vector<pat::Tau> list, double ptTreshold);
   std::vector<int> EleIDPassed;
   std::vector<int> MuonIDPassed;
+  //trigger for ele + muon
+  bool passEleTrig;
+  bool passMuonTrig;
 
   //reweighting stuff
   bool useReweighting;
@@ -609,6 +621,21 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
      if ( (names.triggerName(i)).find("HLT_LooseIsoPFTau50_Trk30_eta2p1_MET90") != std::string::npos ) {
        passTauTrig=triggerBits->accept(i) ;
      }
+     if ( (names.triggerName(i)).find("HLT_Mu45_eta2p1_v") != std::string::npos or
+          (names.triggerName(i)).find("HLT_Mu50_eta2p1_v") != std::string::npos or
+          (names.triggerName(i)).find("HLT_Mu50_v") != std::string::npos or
+          (names.triggerName(i)).find("HLT_IsoMu24_eta2p1_v") != std::string::npos or
+          (names.triggerName(i)).find("HLT_IsoMu24_eta2p1_IterTrk02_v") != std::string::npos
+     ) {
+       passMuonTrig=triggerBits->accept(i) ;
+     }
+     if ( (names.triggerName(i)).find("HLT_Ele115_CaloIdVT_GsfTrkIdT_v") != std::string::npos or
+          (names.triggerName(i)).find("HLT_Ele105_CaloIdVT_GsfTrkIdT_v") != std::string::npos or
+          (names.triggerName(i)).find("HLT_Ele27_eta2p1_WP75_Gsf_v") != std::string::npos or
+          (names.triggerName(i)).find("HLT_Ele27_eta2p1_WPLoose_Gsf_v") != std::string::npos
+     ) {
+       passEleTrig=triggerBits->accept(i) ;
+     }
    }
    if (!RunOnData) passTauTrig=1;
    // std::cout << "RunOnData=" << RunOnData <<  " ## passTauTrig=" << passTauTrig << std::endl;
@@ -778,14 +805,16 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
      //std::cout <<      el.electronIDs().front().first << std::endl;
      if (el.pt() < 5) continue;
      //https://twiki.cern.ch/twiki/bin/view/CMS/CutBasedElectronIdentificationRun2
+     //std::cout << "ele pt " << el.pt() << " ele eta" << abs(el.eta()) << " ele id " << el.electronID("cutBasedElectronID-Spring15-25ns-V1-standalone-loose") << std::endl;
      if ( (el.pt()>20) &&  ( abs(el.eta())<2.5 )  && (el.electronID("cutBasedElectronID-Spring15-25ns-V1-standalone-loose")>6) ){
+     //if ( (el.pt()>20) &&  ( abs(el.eta())<2.5 )  && (el.electronID("cutBasedElectronID-Summer16-80X-V1-loose")>6) ){
          nLooseEle++;
          EleIDPassed.push_back(1);}
      else {EleIDPassed.push_back(0);}
      //printf("elec with pt %4.1f, supercluster eta %+5.3f, sigmaIetaIeta %.3f  ",
      //      el.pt(), el.superCluster()->eta(), el.sigmaIetaIeta()  );
    }
-   //  std::cout << "nLooseEle=" << nLooseEle << std::endl;
+     //std::cout << "nLooseEle=" << nLooseEle << std::endl;
 
    edm::Handle<pat::TauCollection> taus;
    int nGoodTau=0;
@@ -1104,7 +1133,7 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
    mytree->Fill();
    QCDAnalyse();
    //QCDAnalyseTau(muons,taus);
-   QCDAnalyseTau(*electrons,*muons,*taus);
+   QCDAnalyseTau(*electrons,*muons,*taus,met,final_weight);
 
     //if(tau_NoShift.Pt()>80 && calcMT(tau_NoShift,met)>50){
        Fill_QCD_Tree(true,tau_NoShift,met,final_weight);
@@ -1473,6 +1502,34 @@ void MiniAODAnalyzer::Create_Trees(){
         }
 */
   helper->Tree_Creater( &mQCDTree, "qcdtree");
+
+
+
+  mFakeTree["mt"]=0;
+  mFakeTree["delta_phi"]=0;
+  mFakeTree["pt"]=0;
+  mFakeTree["met"]=0;
+  mFakeTree["phi"]=0;
+  mFakeTree["eta"]=0;
+  mFakeTree["met_phi"]=0;
+
+  mFakeTree["decay_mode"]=0;
+  mFakeTree["iso"]=0;
+  mFakeTree["tau_n"]=0;
+  mFakeTree["truth_match"]=0;
+
+  mFakeTree["lepton_type"]=0;
+  mFakeTree["lepton_mt"]=0;
+  mFakeTree["lepton_delta_phi"]=0;
+  mFakeTree["lepton_pt"]=0;
+  mFakeTree["lepton_eta"]=0;
+  mFakeTree["lepton_phi"]=0;
+  mFakeTree["lepton_trigger"]=0;
+
+
+  //general
+  mFakeTree["ThisWeight"]=0;
+  helper->Tree_Creater( &mFakeTree, "fakeTree");
 }
 
 void MiniAODAnalyzer::setShiftedTree(TLorentzVector sel_lepton, const pat::MET sel_met, double weight, pat::MET::METUncertainty metUncert){
@@ -1668,18 +1725,46 @@ void MiniAODAnalyzer::Fill_QCD_Tree(bool iso,TLorentzVector sel_lepton, const pa
 }
 
 
+
 double MiniAODAnalyzer::calcMT(TLorentzVector part1, TLorentzVector part2) {
     double mm = 2 * part1.Pt() * part2.Pt() * ( 1. - cos(deltaPhi(part1.Phi(),part2.Phi()) ));
     return sqrt(mm);
 }
 double MiniAODAnalyzer::calcMT(TLorentzVector part1, const pat::MET part2) {
-    double mm = 2 * part1.Pt() * part2.pt() * ( 1. - cos(deltaPhi(part1.Phi(),part2.phi()) ));
-    return sqrt(mm);
+    //double mm = 2 * part1.Pt() * part2.pt() * ( 1. - cos(deltaPhi(part1.Phi(),part2.phi()) ));
+    //return sqrt(mm);
+    TLorentzVector tempPart2P4 (0,0,0,0);
+    tempPart2P4.SetPxPyPzE(part2.px(),part2.py(),part2.pz(),part2.energy());
+    return calcMT(part1,tempPart2P4);
 }
 
 double MiniAODAnalyzer::calcMT(TLorentzVector part1, const pat::MET part2, pat::MET::METUncertainty metUncert) {
     double mm = 2 * part1.Pt() * part2.shiftedPt(metUncert) * ( 1. - cos(deltaPhi(part1.Phi(),part2.shiftedPhi(metUncert)) ));
     return sqrt(mm);
+}
+double MiniAODAnalyzer::calcMT(const pat::Electron part1, const pat::MET part2) {
+
+    TLorentzVector tempPart1P4 (0,0,0,0);
+    tempPart1P4.SetPxPyPzE(part1.px(),part1.py(),part1.pz(),part1.energy());
+    TLorentzVector tempPart2P4 (0,0,0,0);
+    tempPart2P4.SetPxPyPzE(part2.px(),part2.py(),part2.pz(),part2.energy());
+    return calcMT(tempPart1P4,tempPart2P4);
+}
+double MiniAODAnalyzer::calcMT(const pat::Muon part1, const pat::MET part2) {
+
+    TLorentzVector tempPart1P4 (0,0,0,0);
+    tempPart1P4.SetPxPyPzE(part1.px(),part1.py(),part1.pz(),part1.energy());
+    TLorentzVector tempPart2P4 (0,0,0,0);
+    tempPart2P4.SetPxPyPzE(part2.px(),part2.py(),part2.pz(),part2.energy());
+    return calcMT(tempPart1P4,tempPart2P4);
+}
+double MiniAODAnalyzer::calcMT(const pat::Tau part1, const pat::MET part2) {
+
+    TLorentzVector tempPart1P4 (0,0,0,0);
+    tempPart1P4.SetPxPyPzE(part1.px(),part1.py(),part1.pz(),part1.energy());
+    TLorentzVector tempPart2P4 (0,0,0,0);
+    tempPart2P4.SetPxPyPzE(part2.px(),part2.py(),part2.pz(),part2.energy());
+    return calcMT(tempPart1P4,tempPart2P4);
 }
 
 double MiniAODAnalyzer::DeltaR(pat::Muon part,pat::Tau tau){
@@ -1698,7 +1783,15 @@ double MiniAODAnalyzer::DeltaR(pat::Electron part,pat::Tau tau){
     tempTauP4.SetPxPyPzE(tau.px(),tau.py(),tau.pz(),tau.energy());
     return tempTauP4.DeltaR(tempPartP4);
 }
-
+double MiniAODAnalyzer::DeltaPhi(pat::Electron part1, pat::MET part2){
+    return deltaPhi(part1.phi(),part2.phi());
+}
+double MiniAODAnalyzer::DeltaPhi(pat::Muon part1, pat::MET part2){
+    return deltaPhi(part1.phi(),part2.phi());
+}
+double MiniAODAnalyzer::DeltaPhi(pat::Tau part1, pat::MET part2){
+    return deltaPhi(part1.phi(),part2.phi());
+}
 
 void MiniAODAnalyzer::SetSystMap(){
 
@@ -2099,7 +2192,7 @@ int MiniAODAnalyzer::vetoNumberTau(std::vector<pat::Tau> list, double ptTreshold
 //void MiniAODAnalyzer::QCDAnalyseTau(edm::Handle<std::vector<pat::Muon>> *list, edm::Handle<std::vector<pat::Tau>> *tauList) {
 
   //void QCDAnalyseTau(std::vector<pat::Muon> *list, std::vector<pat::Tau> *tauList);
-void MiniAODAnalyzer::QCDAnalyseTau( std::vector<pat::Electron> EleList,std::vector<pat::Muon> MuonList, std::vector<pat::Tau> TauList) {
+void MiniAODAnalyzer::QCDAnalyseTau( std::vector<pat::Electron> EleList,std::vector<pat::Muon> MuonList, std::vector<pat::Tau> TauList, const pat::MET sel_met,double weight) {
 
     double ptTauTreshold=80;
     double m_leptonVetoPt=20;
@@ -2121,6 +2214,7 @@ void MiniAODAnalyzer::QCDAnalyseTau( std::vector<pat::Electron> EleList,std::vec
             }
             i++;
         }
+        if (eleBool) std::cout << "electron passed " << std::endl;
         i=0;
         bool muonBool=false;
         for( auto part: MuonList) {
@@ -2141,58 +2235,61 @@ void MiniAODAnalyzer::QCDAnalyseTau( std::vector<pat::Electron> EleList,std::vec
             }
             if(eleBool &&  DeltaR(eleCandi,tau)<vetoConeSize){
                 continue;
-            }}}
-            /*
-            if( not Check_Tau_ID_no_iso(*it)  and not Check_Tau_ID(*it)){
+            }
+
+            if( not PassTauID_NonIsolated(tau)  and not PassTauID(tau)){
                 continue;
             }
+            bool m_do_complicated_tau_stuff=false;
             if(!m_do_complicated_tau_stuff){
                 //cout<<"ele   "<<eleTrig<<"   "<<eleCandi<<endl;
                 //cout<<"muon   "<<muoTrig<<"   "<<muoCandi<<endl;
                 //cout<<"------------------------- "<<endl;
 
 
-                mFaketree["mt"]=MT((*it),sel_met);
-                mFaketree["delta_phi"]=DeltaPhi((*it),sel_met);
-                mFaketree["pt"]=(*it)->getPt();
-                mFaketree["met"]=sel_met->getPt();
-                mFaketree["phi"]=(*it)->getPhi();
-                mFaketree["eta"]=(*it)->getEta();
-                mFaketree["met_phi"]=sel_met->getPhi();
-                mFaketree["iso"]=Check_Tau_ID(*it);
-                mFaketree["noiso"]=Check_Tau_ID(*it);
-                mFaketree["tau_n"]=numVetoTau;
-                mFaketree["truth_match"]=(not runOnData and Get_Truth_match("Tau",*it)) ;
+                mFakeTree["mt"]=calcMT(tau,sel_met);
+                mFakeTree["delta_phi"]=DeltaPhi(tau,sel_met);
+                mFakeTree["pt"]=tau.pt();
+                mFakeTree["met"]=sel_met.pt();
+                mFakeTree["phi"]=tau.phi();
+                mFakeTree["eta"]=tau.eta();
+                mFakeTree["met_phi"]=sel_met.phi();
+                mFakeTree["iso"]=PassTauID(tau);
+                mFakeTree["noiso"]=PassTauID(tau);
+                mFakeTree["tau_n"]=numVetoTau;
+/*                mFakeTree["truth_match"]=(not runOnData and Get_Truth_match("Tau",*it)) ;
 
-                if((*it)->hasUserRecord("decayMode")){
-                    mFaketree["decay_mode"]=(*it)->getUserRecord("decayMode").toDouble();
+
+                */mFakeTree["decay_mode"]=tau.decayMode();
+               /* if((*it)->hasUserRecord("decayMode")){
+                    mFakeTree["decay_mode"]=(*it)->getUserRecord("decayMode").toDouble();
                 }else{
-                    mFaketree["decay_mode"]=-1;
+                    mFakeTree["decay_mode"]=-1;
                 }
-                if(muoCandi){
-                    mFaketree["lepton_type"]=13;
-                    mFaketree["lepton_mt"]=MT(muoCandi,sel_met);
-                    mFaketree["lepton_delta_phi"]=DeltaPhi(muoCandi,sel_met);
-                    mFaketree["lepton_pt"]=muoCandi->getPt();
-                    mFaketree["lepton_eta"]=muoCandi->getEta();
-                    mFaketree["lepton_phi"]=muoCandi->getPhi();
-                    mFaketree["lepton_trigger"]=muoTrig;
+                */if(muonBool){
+                    mFakeTree["lepton_type"]=13;
+                    mFakeTree["lepton_mt"]=calcMT(muoCandi,sel_met);
+                    mFakeTree["lepton_delta_phi"]=DeltaPhi(muoCandi,sel_met);
+                    mFakeTree["lepton_pt"]=muoCandi.pt();
+                    mFakeTree["lepton_eta"]=muoCandi.eta();
+                    mFakeTree["lepton_phi"]=muoCandi.phi();
+                    mFakeTree["lepton_trigger"]=passMuonTrig;
                 }
-                if (eleCandi){
-                    mFaketree["lepton_type"]=11;
-                    mFaketree["lepton_mt"]=MT(eleCandi,sel_met);
-                    mFaketree["lepton_delta_phi"]=DeltaPhi(eleCandi,sel_met);
-                    mFaketree["lepton_pt"]=eleCandi->getPt();
-                    mFaketree["lepton_eta"]=eleCandi->getEta();
-                    mFaketree["lepton_phi"]=eleCandi->getPhi();
-                    mFaketree["lepton_trigger"]=eleTrig;;
+                if (eleBool){
+                    mFakeTree["lepton_type"]=11;
+                    mFakeTree["lepton_mt"]=calcMT(eleCandi,sel_met);
+                    mFakeTree["lepton_delta_phi"]=DeltaPhi(eleCandi,sel_met);
+                    mFakeTree["lepton_pt"]=eleCandi.pt();
+                    mFakeTree["lepton_eta"]=eleCandi.eta();
+                    mFakeTree["lepton_phi"]=eleCandi.phi();
+                    mFakeTree["lepton_trigger"]=passEleTrig;
 
                 }
 
                 //general
-                mFaketree["ThisWeight"]=weight;
+                mFakeTree["ThisWeight"]=weight;
 
-
+/*
                 HistClass::FillTree("fakeTree");
 
 
@@ -2331,15 +2428,13 @@ void MiniAODAnalyzer::QCDAnalyseTau( std::vector<pat::Electron> EleList,std::vec
 
                         }
                     }
-                }
+                }*/
             }
 
-
         }
-    }*/
+    }
+    helper->Tree_Filler("fakeTree");
 }
-
-
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(MiniAODAnalyzer);
