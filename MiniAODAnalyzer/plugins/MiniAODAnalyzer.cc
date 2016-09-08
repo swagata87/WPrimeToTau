@@ -173,7 +173,14 @@ private:
   edm::Handle<pat::ElectronCollection> electrons;
   edm::Handle<pat::TauCollection> taus;
   edm::Handle<edm::View<reco::GenParticle> > pruned; ///might not work for data
-  auto GetTruthMatch(std::string name, auto lepton);
+  //reco::GenParticle* GetTruthMatch(std::string name, pat::Tau lepton);
+  reco::GenParticle* GetTruthMatch(std::string name, auto lepton);
+  reco::GenParticle* GetTruthMatchAllFlavor(auto lepton);
+  std::map< pat::Tau*,reco::GenParticle* > tauGenMatchMapAllFlav;
+  std::map< pat::Tau*,reco::GenParticle* > tauGenMatchMap;
+  //pat::Electron GetTruthElectron(int part_temp_id, auto lepton);
+  //pat::Muon GetTruthMuon(int part_temp_id, auto lepton);
+  //pat::Tau GetTruthTau(int part_temp_id, auto lepton);
   ///rest qcd stuff
   //void QCDAnalyseTau(const pat::MET sel_met,double weight);
   void QCDAnalyseTau(const pat::MET sel_met,double weight,edm::Handle<edm::View<reco::GenParticle>> genPart);
@@ -1081,6 +1088,7 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
        }
        ///
 
+        ///marker
        ///testing new way to get systematics
        //std::cout << nGoodTau << std::endl;
        if (nGoodTau==1)  {
@@ -1199,7 +1207,7 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
 
 
    mytree->Fill();
-   QCDAnalyse();
+   //QCDAnalyse();
    //QCDAnalyseTau(muons,taus);
    //if (not RunOnData)
    //QCDAnalyseTau(*electrons,*muons,*taus,met,final_weight,pruned);
@@ -2087,8 +2095,9 @@ double MiniAODAnalyzer::getWmass(edm::Handle<edm::View<reco::GenParticle>> genPa
     return wmass_stored;
 }
 
+/*
 void MiniAODAnalyzer::QCDAnalyse() {
-/*    //inverted isolation
+    //inverted isolation
     if(sel_lepton!=0 or m_do_complicated_tau_stuff){
         return;
     }
@@ -2248,9 +2257,9 @@ void MiniAODAnalyzer::QCDAnalyse() {
         qcd_lepton->setUserRecord("passed",passed);
         qcd_lepton->setPdgNumber(qcd_id);
     }
-*/
-}
 
+}
+*/
 int MiniAODAnalyzer::vetoNumberEle(double ptTreshold,double vetoConeSize){
     //make veto numbers
     //we don't need std::vectors, do we?
@@ -2341,6 +2350,7 @@ void MiniAODAnalyzer::QCDAnalyseTau( const pat::MET sel_met,double weight,edm::H
     int numVetoTau=vetoNumberTau(ptTauTreshold);
     int numVetoEle=vetoNumberEle(m_leptonVetoPt,vetoConeSize);
 
+    //std::cout << numVetoEle << " Muo Vetos " << numVetoMuo << " taus size "<<taus->size()<< std::endl;
     if( ( (numVetoEle==1) xor (numVetoMuo==1 )) && taus->size()>=1){
         pat::Electron eleCandi;
         pat::Muon muoCandi;
@@ -2484,7 +2494,9 @@ void MiniAODAnalyzer::QCDAnalyseTau( const pat::MET sel_met,double weight,edm::H
                     helper->Fill( "Tau_fake_pt_eta",tau.pt(),tau.eta(),weight );
                     helper->Fill( "Tau_fake_pt_met",tau.pt(),sel_met.pt(),weight );
                     helper->Fill( "Tau_fake_pt_decay",tau.pt(),tau.decayMode(),weight );
-                   /* if(not runOnData and Get_Truth_match("Tau",tau) ){
+                   //if(not RunOnData and GetTruthMatch("Tau",tau) ){
+                   if(not RunOnData  ){
+                       GetTruthMatch("Tau",tau);
                         if(muonBool)
                             helper->Fill(1,"Tau_fake_pt_true",muoCandi.pt(),weight);
                             helper->Fill(3,"Tau_fake_pt_true",tau.pt(),weight);
@@ -2494,81 +2506,80 @@ void MiniAODAnalyzer::QCDAnalyseTau( const pat::MET sel_met,double weight,edm::H
                         helper->Fill(0,"Tau_fake_pt_true",tau.pt(),weight);
                         helper->Fill( "Tau_fake_pt_eta_true",tau.pt(),tau.eta(),weight );
                         helper->Fill( "Tau_fake_pt_met_true",tau.pt(),sel_met.pt(),weight );
-                        if(tau->hasUserRecord("decayMode"))
-                            helper->Fill( "Tau_fake_pt_decay_true",tau.pt(),tau->getUserRecord("decayMode").toDouble(),weight );
-                    }*//*else if(not runOnData ){
-                        pxl::Particle* genMatch= Get_Truth_match_all_flavor(tau);
+                        helper->Fill( "Tau_fake_pt_decay_true",tau.pt(),tau.decayMode(),weight );
+                    }else if(not RunOnData ){
+                        reco::GenParticle* genMatch= GetTruthMatchAllFlavor(tau);
                         if(genMatch){
                             //lightquarks
-                            if(abs(genMatch->getPdgNumber())<5){
+                            if(abs(genMatch->pdgId())<5){
                                 helper->Fill(0,"Tau_fake_pt_lightquark",tau.pt(),weight);
                                 //HistClass::Fill( "Tau_fake_pt_eta_lightquark",tau.pt(),tau.eta(),weight );
                                 //HistClass::Fill( "Tau_fake_pt_met_lightquark",tau.pt(),sel_met.pt(),weight );
                             //b quarks
-                            }else if(abs(genMatch->getPdgNumber())==5){
+                            }else if(abs(genMatch->pdgId())==5){
                                 helper->Fill(0,"Tau_fake_pt_bquark",tau.pt(),weight);
                                 //HistClass::Fill( "Tau_fake_pt_eta_bquark",tau.pt(),tau.eta(),weight );
                                 //HistClass::Fill( "Tau_fake_pt_met_bquark",tau.pt(),sel_met.pt(),weight );
-                            }else if(abs(genMatch->getPdgNumber())==9 or abs(genMatch->getPdgNumber())==21){
+                            }else if(abs(genMatch->pdgId())==9 or abs(genMatch->pdgId())==21){
                                 helper->Fill(0,"Tau_fake_pt_gluon",tau.pt(),weight);
                                 //HistClass::Fill( "Tau_fake_pt_eta_gluon",tau.pt(),tau.eta(),weight );
                                 //HistClass::Fill( "Tau_fake_pt_met_gluon",tau.pt(),sel_met.pt(),weight );
-                            }else if(abs(genMatch->getPdgNumber())==11 or abs(genMatch->getPdgNumber())==13){
+                            }else if(abs(genMatch->pdgId())==11 or abs(genMatch->pdgId())==13){
                                  helper->Fill(0,"Tau_fake_pt_lightlepton",tau.pt(),weight);
                                 //HistClass::Fill( "Tau_fake_pt_eta_gluon",tau.pt(),tau.eta(),weight );
                                 //HistClass::Fill( "Tau_fake_pt_met_gluon",tau.pt(),sel_met.pt(),weight );
                             }else{
                                 helper->Fill(0,"Tau_fake_pt_unmatched",tau.pt(),weight);
-                                cout<<"unassociated match: "<<genMatch->getPdgNumber()<<endl;
+                                std::cout<<"unassociated match: "<<genMatch->pdgId()<<std::endl;
                             }
 
                         }
 
 
-                    }*/
+                    }
                 }
-    /*            else if(PassTauID(tau)){
-                    HistClass::Fill(0,"Tau_nofake_pt",tau.pt(),weight);
+                else if(PassTauID(tau)){
+                    helper->Fill(0,"Tau_nofake_pt",tau.pt(),weight);
                     if(muonBool)
-                        HistClass::Fill(1,"Tau_nofake_pt",muoCandi.pt(),weight);
-                        HistClass::Fill(3,"Tau_nofake_pt",tau.pt(),weight);
+                        helper->Fill(1,"Tau_nofake_pt",muoCandi.pt(),weight);
+                        helper->Fill(3,"Tau_nofake_pt",tau.pt(),weight);
                     if(eleBool)
-                        HistClass::Fill(2,"Tau_nofake_pt",eleCandi.pt(),weight);
-                        HistClass::Fill(4,"Tau_nofake_pt",tau.pt(),weight);
-                    HistClass::Fill( "Tau_nofake_pt_eta",tau.pt(),tau.eta(), weight );
-                    HistClass::Fill( "Tau_fake_pt_met",tau.pt(),sel_met.pt(),weight );
-                    if(tau->hasUserRecord("decayMode"))
-                        HistClass::Fill( "Tau_nofake_pt_decay",tau.pt(),tau->getUserRecord("decayMode").toDouble(), weight );
-                    if(not runOnData and Get_Truth_match("Tau",*it) ){
-                        HistClass::Fill(0,"Tau_nofake_pt_true",tau.pt(),weight);
-                        HistClass::Fill( "Tau_nofake_pt_eta_true",tau.pt(),tau.eta(), weight );
-                        HistClass::Fill( "Tau_fake_pt_met_true",tau.pt(),sel_met.pt(),weight );
-                        if(tau->hasUserRecord("decayMode"))
-                            HistClass::Fill( "Tau_nofake_pt_decay_true",tau.pt(),tau->getUserRecord("decayMode").toDouble(), weight );
-                    }else if(not runOnData ){
-                        pxl::Particle* genMatch= Get_Truth_match_all_flavor(tau);
+                        helper->Fill(2,"Tau_nofake_pt",eleCandi.pt(),weight);
+                        helper->Fill(4,"Tau_nofake_pt",tau.pt(),weight);
+                    helper->Fill( "Tau_nofake_pt_eta",tau.pt(),tau.eta(), weight );
+                    helper->Fill( "Tau_fake_pt_met",tau.pt(),sel_met.pt(),weight );
+                    if(tau.decayMode())
+                        helper->Fill( "Tau_nofake_pt_decay",tau.pt(),tau.decayMode(), weight );
+                    if(not RunOnData and GetTruthMatch("Tau",tau) ){
+                        helper->Fill(0,"Tau_nofake_pt_true",tau.pt(),weight);
+                        helper->Fill( "Tau_nofake_pt_eta_true",tau.pt(),tau.eta(), weight );
+                        helper->Fill( "Tau_fake_pt_met_true",tau.pt(),sel_met.pt(),weight );
+                        if(tau.decayMode())
+                            helper->Fill( "Tau_nofake_pt_decay_true",tau.pt(),tau.decayMode(), weight );
+                    }else if(not RunOnData ){
+                        reco::GenParticle* genMatch= GetTruthMatchAllFlavor(tau);
                         if(genMatch){
                             //lightquarks
-                            if(abs(genMatch->getPdgNumber())<5){
-                                HistClass::Fill(0,"Tau_nofake_pt_lightquark",tau.pt(),weight);
-                                //HistClass::Fill( "Tau_nofake_pt_eta_lightquark",tau.pt(),tau.eta(),weight );
-                                //HistClass::Fill( "Tau_nofake_pt_met_lightquark",tau.pt(),sel_met.pt(),weight );
+                            if(abs(genMatch->pdgId())<5){
+                                helper->Fill(0,"Tau_nofake_pt_lightquark",tau.pt(),weight);
+                                //helper->Fill( "Tau_nofake_pt_eta_lightquark",tau.pt(),tau.eta(),weight );
+                                //helper->Fill( "Tau_nofake_pt_met_lightquark",tau.pt(),sel_met.pt(),weight );
                             //b quarks
-                            }else if(abs(genMatch->getPdgNumber())==5){
-                                HistClass::Fill(0,"Tau_nofake_pt_bquark",tau.pt(),weight);
-                                //HistClass::Fill( "Tau_nofake_pt_eta_bquark",tau.pt(),tau.eta(),weight );
-                                //HistClass::Fill( "Tau_nofake_pt_met_bquark",tau.pt(),sel_met.pt(),weight );
-                            }else if(abs(genMatch->getPdgNumber())==9 or abs(genMatch->getPdgNumber())==21){
-                                HistClass::Fill(0,"Tau_nofake_pt_gluon",tau.pt(),weight);
-                                //HistClass::Fill( "Tau_nofake_pt_eta_gluon",tau.pt(),tau.eta(),weight );
-                                //HistClass::Fill( "Tau_nofake_pt_met_gluon",tau.pt(),sel_met.pt(),weight );
-                            }else if(abs(genMatch->getPdgNumber())==11 or abs(genMatch->getPdgNumber())==13){
-                                 HistClass::Fill(0,"Tau_nofake_pt_lightlepton",tau.pt(),weight);
-                                //HistClass::Fill( "Tau_nofake_pt_eta_gluon",tau.pt(),tau.eta(),weight );
-                                //HistClass::Fill( "Tau_nofake_pt_met_gluon",tau.pt(),sel_met.pt(),weight );
+                            }else if(abs(genMatch->pdgId())==5){
+                                helper->Fill(0,"Tau_nofake_pt_bquark",tau.pt(),weight);
+                                //helper->Fill( "Tau_nofake_pt_eta_bquark",tau.pt(),tau.eta(),weight );
+                                //helper->Fill( "Tau_nofake_pt_met_bquark",tau.pt(),sel_met.pt(),weight );
+                            }else if(abs(genMatch->pdgId())==9 or abs(genMatch->pdgId())==21){
+                                helper->Fill(0,"Tau_nofake_pt_gluon",tau.pt(),weight);
+                                //helper->Fill( "Tau_nofake_pt_eta_gluon",tau.pt(),tau.eta(),weight );
+                                //helper->Fill( "Tau_nofake_pt_met_gluon",tau.pt(),sel_met.pt(),weight );
+                            }else if(abs(genMatch->pdgId())==11 or abs(genMatch->pdgId())==13){
+                                 helper->Fill(0,"Tau_nofake_pt_lightlepton",tau.pt(),weight);
+                                //helper->Fill( "Tau_nofake_pt_eta_gluon",tau.pt(),tau.eta(),weight );
+                                //helper->Fill( "Tau_nofake_pt_met_gluon",tau.pt(),sel_met.pt(),weight );
                             }else{
-                                HistClass::Fill(0,"Tau_nofake_pt_unmatched",tau.pt(),weight);
-                                cout<<"unassociated match: "<<genMatch->getPdgNumber()<<endl;
+                                helper->Fill(0,"Tau_nofake_pt_unmatched",tau.pt(),weight);
+                                std::cout<<"unassociated match: "<<genMatch->pdgId()<<std::endl;
                             }
 
                         }
@@ -2577,39 +2588,41 @@ void MiniAODAnalyzer::QCDAnalyseTau( const pat::MET sel_met,double weight,edm::H
                     }
 
                 }
-            }else{//do complicated tau stuff
+            }/*else{//do complicated tau stuff
                 for(std::vector<std::string>::iterator disc_it = d_mydisc.begin(); disc_it != d_mydisc.end(); disc_it++){
-                    if(Check_Tau_ID_no_iso(*it,*disc_it)){
-                        HistClass::Fill(0,Form("Tau_fake_pt_%s",(*disc_it).c_str()),tau.pt(),weight);
-                        HistClass::Fill( Form("Tau_fake_pt_eta_%s",(*disc_it).c_str()),tau.pt(),tau.eta(),weight );
-                        HistClass::Fill( Form("Tau_fake_pt_met_%s",(*disc_it).c_str()),tau.pt(),sel_met.pt(),weight );
-                        if(tau->hasUserRecord("decayMode"))
-                            HistClass::Fill( Form("Tau_fake_pt_decay_%s",(*disc_it).c_str()),tau.pt(),tau->getUserRecord("decayMode").toDouble(),weight );
-                        if(not runOnData and Get_Truth_match("Tau",*it) ){
-                            HistClass::Fill(0,Form("Tau_fake_pt_%s_true",(*disc_it).c_str()),tau.pt(),weight);
-                            HistClass::Fill( Form("Tau_fake_pt_eta_%s_true",(*disc_it).c_str()),tau.pt(),tau.eta(),weight );
-                            HistClass::Fill( Form("Tau_fake_pt_met_%s_true",(*disc_it).c_str()),tau.pt(),sel_met.pt(),weight );
-                            if(tau->hasUserRecord("decayMode"))
-                                HistClass::Fill( Form("Tau_fake_pt_decay_%s_true",(*disc_it).c_str()),tau.pt(),tau->getUserRecord("decayMode").toDouble(),weight );
+                    //if(PassTauID_NonIsolated(tau,*disc_it)){
+                    if(PassTauID_NonIsolated(tau)){
+                        helper->Fill(0,Form("Tau_fake_pt_%s",(*disc_it).c_str()),tau.pt(),weight);
+                        helper->Fill( Form("Tau_fake_pt_eta_%s",(*disc_it).c_str()),tau.pt(),tau.eta(),weight );
+                        helper->Fill( Form("Tau_fake_pt_met_%s",(*disc_it).c_str()),tau.pt(),sel_met.pt(),weight );
+                        if(tau.decayMode())
+                            helper->Fill( Form("Tau_fake_pt_decay_%s",(*disc_it).c_str()),tau.pt(),tau.decayMode().toDouble(),weight );
+                        if(not RunOnData and GetTruthMatch("Tau",tau) ){
+                            helper->Fill(0,Form("Tau_fake_pt_%s_true",(*disc_it).c_str()),tau.pt(),weight);
+                            helper->Fill( Form("Tau_fake_pt_eta_%s_true",(*disc_it).c_str()),tau.pt(),tau.eta(),weight );
+                            helper->Fill( Form("Tau_fake_pt_met_%s_true",(*disc_it).c_str()),tau.pt(),sel_met.pt(),weight );
+                            if(tau.decayMode())
+                                helper->Fill( Form("Tau_fake_pt_decay_%s_true",(*disc_it).c_str()),tau.pt(),tau.decayMode().toDouble(),weight );
                         }
                     }
-                    else if(Check_Tau_ID(*it,*disc_it)){
-                        HistClass::Fill(0,Form("Tau_nofake_pt_%s",(*disc_it).c_str()),tau.pt(),weight);
-                        HistClass::Fill( Form("Tau_nofake_pt_eta_%s",(*disc_it).c_str()),tau.pt(),tau.eta(), weight );
-                        HistClass::Fill( Form("Tau_fake_pt_met_%s",(*disc_it).c_str()),tau.pt(),sel_met.pt(),weight );
-                        if(tau->hasUserRecord("decayMode"))
-                            HistClass::Fill( Form("Tau_nofake_pt_decay_%s",(*disc_it).c_str()),tau.pt(),tau->getUserRecord("decayMode").toDouble(), weight );
-                        if(not runOnData and Get_Truth_match("Tau",*it) ){
-                            HistClass::Fill(0,Form("Tau_nofake_pt_%s_true",(*disc_it).c_str()),tau.pt(),weight);
-                            HistClass::Fill( Form("Tau_nofake_pt_eta_%s_true",(*disc_it).c_str()),tau.pt(),tau.eta(), weight );
-                            HistClass::Fill( Form("Tau_fake_pt_met_%s_true",(*disc_it).c_str()),tau.pt(),sel_met.pt(),weight );
-                            if(tau->hasUserRecord("decayMode"))
-                                HistClass::Fill( Form("Tau_nofake_pt_decay_%s_true",(*disc_it).c_str()),tau.pt(),tau->getUserRecord("decayMode").toDouble(), weight );
+                    //else if(PassTauID(tau,*disc_it)){
+                    else if(PassTauID(tau)){
+                        helper->Fill(0,Form("Tau_nofake_pt_%s",(*disc_it).c_str()),tau.pt(),weight);
+                        helper->Fill( Form("Tau_nofake_pt_eta_%s",(*disc_it).c_str()),tau.pt(),tau.eta(), weight );
+                        helper->Fill( Form("Tau_fake_pt_met_%s",(*disc_it).c_str()),tau.pt(),sel_met.pt(),weight );
+                        if(tau-decayMode())
+                            helper->Fill( Form("Tau_nofake_pt_decay_%s",(*disc_it).c_str()),tau.pt(),tau.decayMode(), weight );
+                        if(not RunOnData and Get_Truth_match("Tau",tau) ){
+                            helper->Fill(0,Form("Tau_nofake_pt_%s_true",(*disc_it).c_str()),tau.pt(),weight);
+                            helper->Fill( Form("Tau_nofake_pt_eta_%s_true",(*disc_it).c_str()),tau.pt(),tau.eta(), weight );
+                            helper->Fill( Form("Tau_fake_pt_met_%s_true",(*disc_it).c_str()),tau.pt(),sel_met.pt(),weight );
+                            if(tau.decayMode())
+                                helper->Fill( Form("Tau_nofake_pt_decay_%s_true",(*disc_it).c_str()),tau.pt(),tau.decayMode(), weight );
 
                         }
                     }
-                }*/
-            }
+                }
+            }*/
         }
 
         //std::cout << FakeCandDeltaPhi.size() << " " << FakeCandPt.size() << std::endl;
@@ -2625,15 +2638,15 @@ void MiniAODAnalyzer::QCDAnalyseTau( const pat::MET sel_met,double weight,edm::H
         mFakeVectorTree["FakeCandVetoNum"]=FakeCandVetoNum;*/
 
         //std::cout << FakeCandEta[-1] << std::endl;
-
         helper->Tree_Filler("fakeVectorTree");
     }
 }
 
-auto MiniAODAnalyzer::GetTruthMatch(std::string name, auto lepton) {
-    //if (gen_match_map.end()  !=gen_match_map.find(lepton)){
-        //return gen_match_map[lepton];
-    //}
+//reco::GenParticle MiniAODAnalyzer::GetTruthMatch(std::string name, auto lepton) {
+reco::GenParticle* MiniAODAnalyzer::GetTruthMatch(std::string name, auto lepton) {
+    if (tauGenMatchMap.end()  !=tauGenMatchMap.find(&lepton)){
+        return tauGenMatchMap[&lepton];
+    }
     int part_temp_id = 0;
     if (name == "Tau") {
         part_temp_id = 15;
@@ -2643,66 +2656,38 @@ auto MiniAODAnalyzer::GetTruthMatch(std::string name, auto lepton) {
         part_temp_id = 11;
     }
     double temp_delta_r = 2;
-    //auto gen_match;
-    //for (std::vector< pxl::Particle* >::const_iterator part_it = S3ListGen->begin(); part_it != S3ListGen->end(); ++part_it) {
+    reco::GenParticle gen_match;
     for (auto part_i: *pruned){
-        //pxl::Particle *part_i = *part_it;
         int part_temp_truth_id = 0;
-        //if (m_dataPeriod =="8TeV") {
-            //part_temp_truth_id = TMath::Abs(part_i->getUserRecord("id").asInt32());
-        //} else
-        //if (m_dataPeriod =="13TeV") {
             part_temp_truth_id = TMath::Abs(part_i.pdgId());
-        //}
         if (part_temp_id != part_temp_truth_id) continue;
-        //double test_delta_r = lepton->getVector().deltaR(part_i->getVector());
-        //double test_delta_r = lepton.getVector().deltaR(part_i->getVector());
         double test_delta_r = DeltaR(lepton,part_i);
-        if (test_delta_r < temp_delta_r) {
-            temp_delta_r = test_delta_r;
-            auto gen_match = part_i;
-        }
-    }
-    //gen_match_map[lepton]=gen_match;
-    return lepton;
-
-}
-
-/*
-pxl::Particle* specialAna::Get_Truth_match(std::string name, pxl::Particle* lepton) {
-    if (gen_match_map.end()  !=gen_match_map.find(lepton)){
-        return gen_match_map[lepton];
-    }
-    int part_temp_id = 0;
-    if (name == "Tau") {
-        part_temp_id = 15;
-    } else if (name == "Muon") {
-        part_temp_id = 13;
-    } else if (name == "Ele") {
-        part_temp_id = 11;
-    }
-    double temp_delta_r = 2;
-    pxl::Particle* gen_match = 0;
-    for (std::vector< pxl::Particle* >::const_iterator part_it = S3ListGen->begin(); part_it != S3ListGen->end(); ++part_it) {
-        pxl::Particle *part_i = *part_it;
-        int part_temp_truth_id = 0;
-        if (m_dataPeriod =="8TeV") {
-            part_temp_truth_id = TMath::Abs(part_i->getUserRecord("id").asInt32());
-        } else if (m_dataPeriod =="13TeV") {
-            part_temp_truth_id = TMath::Abs(part_i->getPdgNumber());
-        }
-        if (part_temp_id != part_temp_truth_id) continue;
-        double test_delta_r = lepton->getVector().deltaR(part_i->getVector());
         if (test_delta_r < temp_delta_r) {
             temp_delta_r = test_delta_r;
             gen_match = part_i;
         }
     }
-    gen_match_map[lepton]=gen_match;
-    return gen_match;
-
+    tauGenMatchMap[&lepton]=&gen_match;
+    return tauGenMatchMap[&lepton];
+}
+reco::GenParticle* MiniAODAnalyzer::GetTruthMatchAllFlavor(auto lepton) {
+    if (tauGenMatchMapAllFlav.end()  !=tauGenMatchMapAllFlav.find(&lepton)){
+        return tauGenMatchMapAllFlav[&lepton];
+    }
+    double temp_delta_r = 0.5;
+    reco::GenParticle gen_match;
+    for (auto part_i: *pruned){
+        double test_delta_r = DeltaR(lepton,part_i);
+        if (test_delta_r < temp_delta_r && fabs(lepton.pt()-part_i.pt())/part_i.pt()<0.5 && abs(part_i.pdgId())<22 && abs(part_i.pdgId())!=12 && abs(part_i.pdgId())!=14 && abs(part_i.pdgId())!=16) {
+            temp_delta_r = test_delta_r;
+            gen_match = part_i;
+        }
+    }
+    tauGenMatchMapAllFlav[&lepton]=&gen_match;
+    return tauGenMatchMap[&lepton];
 }
 
+/*
 pxl::Particle* specialAna::Get_Truth_match_all_flavor(pxl::Particle* lepton) {
     if (gen_match_map_all_flav.end()  !=gen_match_map_all_flav.find(lepton)){
         return gen_match_map_all_flav[lepton];
