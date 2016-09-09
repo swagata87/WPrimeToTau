@@ -970,7 +970,6 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
    //---------------//
    //---Selection---//
    //---------------//
-
    if (passTauTrig && passHBHENoiseFilter && passHBHENoiseIsoFilter && passEcalDeadCellTriggerPrimitiveFilter && passgoodVertices && passeeBadScFilter && passglobalTightHalo2016Filter) {
      if ( (nvtx>0) && (nTightMu==0) && (nLooseEle==0) ) {
        //** Stage1 = final stage (all cuts applied) **//
@@ -1208,11 +1207,7 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
 
    mytree->Fill();
    //QCDAnalyse();
-   //QCDAnalyseTau(muons,taus);
    //if (not RunOnData)
-   //QCDAnalyseTau(*electrons,*muons,*taus,met,final_weight,pruned);
-   //QCDAnalyseTau(*electrons,*muons,*taus,met,final_weight);
-   //QCDAnalyseTau(*electrons,*taus,met,final_weight);
    QCDAnalyseTau(met,final_weight,pruned);
    //QCDAnalyseTau(met,final_weight);
 
@@ -1221,44 +1216,7 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
        Fill_Tree(tau_NoShift,met,final_weight,"");
        helper->Tree_Filler("reweighttree");
     //}
-    //}
-/*
-    if(!runOnData and useSyst){
-        //cout<<"test1"<<endl;
-        for(auto syst : m_syst_shifter->m_activeSystematics){
-            //cout<<"test2"<<endl;
-            FillSystematicsUpDown(event, syst->m_particleType, "Up", syst->m_sysType);
-            FillSystematicsUpDown(event, syst->m_particleType, "Down", syst->m_sysType);
-        }
 
-        //do systshifts with a modified weight:
-        double kfacWeight = m_GenEvtView->getUserRecord( "Weight" ).toDouble()*m_GenEvtView->getUserRecord( "PUWeight").toDouble();
-        kfacWeight*=applyKfactor(event,1);
-        kfacWeight*=aplyDataMCScaleFactors();
-        kfacWeight*=1.05;
-        FillSystematicsUpDown(event, "kFak", "", "",kfacWeight,true);
-        //eleID
-        double eleIDWeight = m_GenEvtView->getUserRecord( "Weight" ).toDouble()*m_GenEvtView->getUserRecord( "PUWeight").toDouble();
-        eleIDWeight*=applyKfactor(event,0);
-        eleIDWeight*=aplyDataMCScaleFactors(1);
-        FillSystematicsUpDown(event, "eleID",  "Up","",eleIDWeight,true);
-
-        eleIDWeight = m_GenEvtView->getUserRecord( "Weight" ).toDouble()*m_GenEvtView->getUserRecord( "PUWeight").toDouble();
-        eleIDWeight*=applyKfactor(event,0);
-        eleIDWeight*=aplyDataMCScaleFactors(2);
-        FillSystematicsUpDown(event, "eleID", "Down","",eleIDWeight,true);
-
-        eleIDWeight = m_GenEvtView->getUserRecord( "Weight" ).toDouble()*m_GenEvtView->getUserRecord( "PUWeightUp").toDouble();
-        eleIDWeight*=applyKfactor(event,0);
-        eleIDWeight*=aplyDataMCScaleFactors();
-        FillSystematicsUpDown(event, "pileup", "Up","",eleIDWeight,true);
-
-        eleIDWeight = m_GenEvtView->getUserRecord( "Weight" ).toDouble()*m_GenEvtView->getUserRecord( "PUWeightDown").toDouble();
-        eleIDWeight*=applyKfactor(event,0);
-        eleIDWeight*=aplyDataMCScaleFactors();
-        FillSystematicsUpDown(event, "pileup", "Down","",eleIDWeight,true);
-    }
-*/
 
 #ifdef THIS_IS_AN_EVENT_EXAMPLE
    Handle<ExampleData> pIn;
@@ -1279,7 +1237,7 @@ bool MiniAODAnalyzer::PassFinalCuts(int nGoodTau_, double met_val_,double met_ph
       double pToverEtMiss=tau_pt_/met_val_ ;
       if (pToverEtMiss>0.7 && pToverEtMiss<1.3) {
     // std::cout << "pToverEtMiss=" << pToverEtMiss << std::endl;
-    if (dphi_tau_met>2.4) {
+    if (fabs(dphi_tau_met)>2.4) {
       // std::cout << "dphi_tau_met=" << dphi_tau_met << std::endl;
       passed=true;
     }
@@ -1300,56 +1258,6 @@ bool MiniAODAnalyzer::PassFinalCuts(TLorentzVector part1, const pat::MET part2) 
 bool MiniAODAnalyzer::PassFinalCuts(int nGoodTau_,TLorentzVector part1, const pat::MET part2) {
     return PassFinalCuts(nGoodTau_,part2.pt(),part2.phi(),part1.Pt(),part1.Phi());
 }
-/*
-//call passFinalCuts with doubles
-bool MiniAODAnalyzer::PassFinalCuts(TLorentzVector part1, const pat::MET part2, pat::MET::METUncertainty metUncert) {
-  bool passed=false;
-    if ( part2.shiftedPt(metUncert)>120 ) {
-      dphi_tau_met = deltaPhi(part1.Phi(),part2.shiftedPhi(metUncert));
-      double pToverEtMiss=part1.Pt()/part2.shiftedPt(metUncert) ;
-      if (pToverEtMiss>0.7 && pToverEtMiss<1.3) {
-        // std::cout << "pToverEtMiss=" << pToverEtMiss << std::endl;
-        if (dphi_tau_met>2.4) {
-          // std::cout << "dphi_tau_met=" << dphi_tau_met << std::endl;
-          passed=true;
-        }
-    }
-  }
-  return passed;
-}
-bool MiniAODAnalyzer::PassFinalCuts(TLorentzVector part1, const pat::MET part2) {
-  bool passed=false;
-    if ( part2.pt()>120 ) {
-      dphi_tau_met = deltaPhi(part1.Phi(),part2.phi());
-      double pToverEtMiss=part1.Pt()/part2.pt() ;
-      if (pToverEtMiss>0.7 && pToverEtMiss<1.3) {
-        // std::cout << "pToverEtMiss=" << pToverEtMiss << std::endl;
-        if (dphi_tau_met>2.4) {
-          // std::cout << "dphi_tau_met=" << dphi_tau_met << std::endl;
-          passed=true;
-        }
-    }
-  }
-  return passed;
-}
-bool MiniAODAnalyzer::PassFinalCuts(int nGoodTau_,TLorentzVector part1, const pat::MET part2) {
-  bool passed=false;
-  if (nGoodTau_==1) {
-    if ( part2.pt()>120 ) {
-      dphi_tau_met = deltaPhi(part1.Phi(),part2.phi());
-      double pToverEtMiss=part1.Pt()/part2.pt() ;
-      if (pToverEtMiss>0.7 && pToverEtMiss<1.3) {
-        // std::cout << "pToverEtMiss=" << pToverEtMiss << std::endl;
-        if (dphi_tau_met>2.4) {
-          // std::cout << "dphi_tau_met=" << dphi_tau_met << std::endl;
-          passed=true;
-        }
-      }
-    }
-  }
-  return passed;
-}
-*/
 
 
 bool MiniAODAnalyzer::FindTauIDEfficiency(const edm::Event& iEvent, TLorentzVector gen_p4) {
@@ -1443,6 +1351,7 @@ MiniAODAnalyzer::endJob()
    * "mytree" as to be reintroduced in the TFileService then
    * via mytree = fs->make<TTree>("tree", "tr");
   */
+  ///remove second root file
   rootFile_->cd();
   rootFile_->mkdir("mukherjee");
   rootFile_->cd("mukherjee");
@@ -1457,7 +1366,7 @@ MiniAODAnalyzer::endJob()
 
 
   ///crosscheck
-  /*
+
   h1_MT_Stage1_metUncert_JetEnUp_diff->Add(h1_MT_Stage1_metUncert_JetEnUp_new,1);
   h1_MT_Stage1_metUncert_JetEnUp_diff->Add(h1_MT_Stage1_metUncert_JetEnUp,-1);
   h1_MT_Stage1_metUncert_JetEnDown_diff->Add(h1_MT_Stage1_metUncert_JetEnDown_new,1);
@@ -1490,7 +1399,7 @@ MiniAODAnalyzer::endJob()
   h1_MT_Stage1_TauScaleUp_diff->Add(h1_MT_Stage1_TauScaleUp,-1);
   h1_MT_Stage1_TauScaleDown_diff->Add(h1_MT_Stage1_TauScaleDown_new,1);
   h1_MT_Stage1_TauScaleDown_diff->Add(h1_MT_Stage1_TauScaleDown,-1);
-*/
+
   //TFileDirectory subDir = fs->mkdir( "mySubDirectory" ); //testing
   //subDir.cd();
   //helper.WriteTree("qcdtree");
@@ -1673,7 +1582,12 @@ void MiniAODAnalyzer::setShiftedTree(TLorentzVector sel_lepton, const pat::MET s
     if(useReweighting==true){
         for (int i=1;i<=14;i++){
             if ( (PassFinalCuts(sel_lepton,sel_met,mSyst[std::to_string(i)] ) == true) ) {
-                mReweightTree["gen_mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met);//gen, has to be fixed
+                /// currently the tau is not given, maybe loop over all taus and find the match?
+                /*TLorentzVector tempP4 (0,0,0,0);
+                reco::GenParticle* genMatch=GetTruthMatch("Tau",tau);
+                tempP4.SetPxPyPzE(genMatch->px(),genMatch->py(),genMatch->pz(),genMatch->energy());
+                mReweightTree["gen_mt_"+mSystName[std::to_string(i)]]=calcMT(tempP4,sel_met,mSyst[std::to_string(i)]);//gen, has to be fixed*/
+                mReweightTree["gen_mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met,mSyst[std::to_string(i)]);//gen, has to be fixed
                 mReweightTree["mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met,mSyst[std::to_string(i)]);
                 mReweightTree["met_"+mSystName[std::to_string(i)]]=sel_met.shiftedPhi(metUncert);
                 mReweightTree["delta_phi_"+mSystName[std::to_string(i)]]=deltaPhi(sel_lepton.Phi(),sel_met.shiftedPhi(metUncert));
@@ -1702,7 +1616,11 @@ void MiniAODAnalyzer::setShiftedTree(TLorentzVector sel_lepton, const pat::MET s
         for (int i=15;i<=16;i++){
             //std::cout << i << std::endl;
             if ( (PassFinalCuts(sel_lepton,sel_met,mSyst[std::to_string(i)] ) == true) ) {
-                mReweightTree["gen_mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met);//gen, has to be fixed
+                /*TLorentzVector tempP4 (0,0,0,0);
+                reco::GenParticle* genMatch=GetTruthMatch("Tau",tau);
+                tempP4.SetPxPyPzE(genMatch->px(),genMatch->py(),genMatch->pz(),genMatch->energy());
+                mReweightTree["gen_mt_"+mSystName[std::to_string(i)]]=calcMT(tempP4,sel_met);*/
+                mReweightTree["gen_mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met);
                 mReweightTree["mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met);
                 mReweightTree["met_"+mSystName[std::to_string(i)]]=sel_met.phi();
                 mReweightTree["delta_phi_"+mSystName[std::to_string(i)]]=deltaPhi(sel_lepton.Phi(),sel_met.phi());
