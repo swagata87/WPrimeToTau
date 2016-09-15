@@ -70,6 +70,15 @@
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
+
+// cant set lorentzvetor branch without this
+#ifdef __CINT__
+#pragma link C++ class std::vector<TLorentzVector>+;
+#endif
+#ifdef __CINT__
+#pragma link C++ class std::vector<float>+;
+#endif
+
 // new includes
 #include <unordered_map>
 #include <unordered_set>
@@ -113,11 +122,15 @@ private:
 
   //new additions
   virtual void Create_Trees();
-  virtual void Fill_Tree(TLorentzVector sel_lepton, const pat::MET sel_met);
-  virtual void Fill_QCD_Tree(bool iso);
+  virtual void Fill_Tree(TLorentzVector sel_lepton, const pat::MET sel_met,double weight, std::string systematic);
+  virtual void Fill_QCD_Tree(bool iso,TLorentzVector sel_lepton, const pat::MET sel_met, double weight);
 
   std::unordered_map< std::string,float > mLeptonTree;
+  std::unordered_map< std::string,float > mReweightTree;
   std::unordered_map< std::string,float > mQCDTree;
+  std::unordered_map< std::string,float > mFakeTree;
+  std::unordered_map< std::string,std::vector<float> > mFakeVectorTree;
+  //std::unordered_map< std::string,float > mFakeVectorTree;
   edm::Service<TFileService> fs;
   Helper* helper =new Helper(fs);
 
@@ -126,9 +139,100 @@ private:
   double calcMT(TLorentzVector part1, TLorentzVector part2);
   double calcMT(TLorentzVector part1, const pat::MET part2);
   double calcMT(TLorentzVector part1, const pat::MET part2, pat::MET::METUncertainty metUncert);
+  double calcMT(const pat::Electron part1, const pat::MET part2);
+  double calcMT(const pat::Muon part1, const pat::MET part2);
+  double calcMT(const pat::Tau part1, const pat::MET part2);
+
   std::unordered_map< std::string,pat::MET::METUncertainty > mSyst;
   std::unordered_map< std::string,TH1D* > mSystHist;
+  std::unordered_map< std::string,std::string > mSystName;
   virtual void SetSystMap();
+
+  //deltaR calculation
+  double DeltaR(auto part ,auto tau);
+  double DeltaR(pat::Electron part ,pat::Tau tau);
+  double DeltaR(pat::Muon part,pat::Tau tau);
+
+  //deltaPhi calculation
+  double DeltaPhi(pat::Electron part1, pat::MET part2);
+  double DeltaPhi(pat::Muon part1, pat::MET part2);
+  double DeltaPhi(pat::Tau part1, pat::MET part2);
+
+  //kfactor
+  double applyWKfactor(int mode,edm::Handle<edm::View<reco::GenParticle>> genPart);
+  std::string KFactorE_;
+  std::string KFactorMu_;
+  std::string KFactorTau_;
+  TFile* m_kfactorFile_ele;
+  TFile* m_kfactorFile_muo;
+  TFile* m_kfactorFile_tau;
+  TH1D* m_kfactorHist_ele[3];
+  TH1D* m_kfactorHist_muo[3];
+  TH1D* m_kfactorHist_tau[3];
+  std::string sourceFileString;
+  double WtoInt;
+  double WJetsInt;
+  int getWdecay(edm::Handle<edm::View<reco::GenParticle>> genPart);
+  double getWmass(edm::Handle<edm::View<reco::GenParticle>> genPart);
+  double wmass_stored;
+  double k_fak_stored;
+
+  //discriminators
+  std::vector<std::string> d_mydisc;
+  //QCD stuff
+  void QCDAnalyse();
+  //void QCDAnalyseTau(edm::Handle<std::vector<pat::Muon> >*list, edm::Handle<std::vector<pat::Tau> >*tauList);
+  //void QCDAnalyseTau(std::vector<pat::Electron> EleList,std::vector<pat::Muon> MuonList, std::vector<pat::Tau> tauList,const pat::MET sel_met,double weight,edm::Handle<edm::View<reco::GenParticle>> genPart);
+  //void QCDAnalyseTau(std::vector<pat::Electron> EleList,std::vector<pat::Muon> MuonList, std::vector<pat::Tau> tauList,const pat::MET sel_met,double weight);
+  ///test
+  edm::Handle<pat::MuonCollection> muons;
+  edm::Handle<pat::ElectronCollection> electrons;
+  edm::Handle<pat::TauCollection> taus;
+  edm::Handle<edm::View<reco::GenParticle> > pruned; ///might not work for data
+  //reco::GenParticle* GetTruthMatch(std::string name, pat::Tau lepton);
+  reco::GenParticle* GetTruthMatch(std::string name, auto lepton);
+  reco::GenParticle* GetTruthMatchAllFlavor(auto lepton);
+  std::map< pat::Tau*,reco::GenParticle* > tauGenMatchMapAllFlav;
+  std::map< pat::Tau*,reco::GenParticle* > tauGenMatchMap;
+  //pat::Electron GetTruthElectron(int part_temp_id, auto lepton);
+  //pat::Muon GetTruthMuon(int part_temp_id, auto lepton);
+  //pat::Tau GetTruthTau(int part_temp_id, auto lepton);
+  ///rest qcd stuff
+  //void QCDAnalyseTau(const pat::MET sel_met,double weight);
+  void QCDAnalyseTau(const pat::MET sel_met,double weight,edm::Handle<edm::View<reco::GenParticle>> genPart);
+  int vetoNumberEle(double ptTreshold,double vetoConeSize);
+  int vetoNumberMuon(double ptTreshold,double vetoConeSize);
+  int vetoNumberTau(double ptTreshold);
+  std::vector<int> EleIDPassed;
+  std::vector<int> MuonIDPassed;
+  std::vector<float> FakeCandPt;
+  std::vector<float> FakeCandPhi;
+  std::vector<float> FakeCandEta;
+  std::vector<float> FakeCandMt;
+  std::vector<float> FakeCandDeltaPhi;
+  std::vector<float> FakeCandMET;
+  std::vector<float> FakeCandMETPhi;
+  std::vector<float> FakeCandIso;
+  std::vector<float> FakeCandNoIso;
+  std::vector<float> FakeCandVetoNum;
+  std::vector<float> FakeCandDecayMode;
+  std::vector<float> FakeCandLeptonType;
+  std::vector<float> FakeCandLeptonMt;
+  std::vector<float> FakeCandLeptonDeltaPhi;
+  std::vector<float> FakeCandLeptonPt;
+  std::vector<float> FakeCandLeptonEta;
+  std::vector<float> FakeCandLeptonPhi;
+  std::vector<float> FakeCandLeptonTrigger;
+
+  std::vector<TLorentzVector> FakeCandLorentz;
+  //trigger for ele + muon
+  bool passEleTrig;
+  bool passMuonTrig;
+
+  //reweighting stuff
+  bool useReweighting;
+  void setShiftedTree(TLorentzVector sel_lepton, const pat::MET sel_met,double weight, pat::MET::METUncertainty metUncert);
+  void setShiftedTree(TLorentzVector sel_lepton, const pat::MET sel_met, double weight);
 
   // ----------member data ---------------------------
   edm::LumiReWeighting LumiWeights_;
@@ -214,7 +318,8 @@ private:
   TH1D *h1_MT_Stage1_pileupUncertDown;
   TH1D *h1_MT_Stage1_pdfUncertUp;
   TH1D *h1_MT_Stage1_pdfUncertDown;
-
+  TH1D *h1_MT_Stage1_kFactorUp;
+  TH1D *h1_MT_Stage1_kFactorDown;
 
   ///crosscheck
   TH1D *h1_MT_Stage1_metUncert_JetEnUp_new;
@@ -251,8 +356,6 @@ private:
   TH1D *h1_MT_Stage1_TauScaleDown_diff;
   ///crosscheck end
 
-
->>>>>>> merged addMTFunction into FillTrees
   TH1D *h1_recoVtx_NoPUWt;
   TH1D *h1_recoVtx_WithPUWt;
   //
@@ -311,6 +414,11 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
   pileupData_ = iConfig.getParameter<std::string>("PileupDataFile") ;
   pileupData_UP_ = iConfig.getParameter<std::string>("PileupDataFile_UP") ;
   pileupData_DOWN_ = iConfig.getParameter<std::string>("PileupDataFile_DOWN") ;
+  KFactorE_ = iConfig.getParameter<std::string>("KFactorE") ;
+  KFactorMu_ = iConfig.getParameter<std::string>("KFactorMu") ;
+  KFactorTau_ = iConfig.getParameter<std::string>("KFactorTau") ;
+  sourceFileString=iConfig.getParameter<std::string>("sourceFileString");
+  useReweighting=iConfig.getParameter<bool>("useReweighting");
   rootFile_   = TFile::Open(outputFile_.c_str(),"RECREATE"); // open output file to store histograms
   TFileDirectory histoDir = fs->mkdir("histoDir");
   TFileDirectory crossDir = fs->mkdir("crossDir");
@@ -400,7 +508,6 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
     h1_MT_Stage1_pdfUncertUp = histoDir.make<TH1D>("mT_Stage1_pdfUncertUp", "MT_Stage1_pdfUncertUp", nbinMT, xlowMT, xupMT);
     h1_MT_Stage1_pdfUncertDown =histoDir.make<TH1D>("mT_Stage1_pdfUncertDown", "MT_Stage1_pdfUncertDown", nbinMT, xlowMT, xupMT);
   }
-
   ///crosscheck
   h1_MT_Stage1_metUncert_JetEnUp_new = crossDir.make<TH1D>("mT_Stage1_metUncert_JetEnUp_new", "MT_Stage1_metUncert_JetEnUp_new", 2000, 0, 2000);
   h1_MT_Stage1_metUncert_JetEnDown_new = crossDir.make<TH1D>("mT_Stage1_metUncert_JetEnDown_new", "MT_Stage1_metUncert_JetEnDown_new", 2000, 0, 2000);
@@ -435,9 +542,54 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
   h1_MT_Stage1_TauScaleUp_diff = crossDir.make<TH1D>("mT_Stage1_TauScaleUp_diff", "MT_Stage1_TauScaleUp_diff", 2000, 0, 2000);
   h1_MT_Stage1_TauScaleDown_diff = crossDir.make<TH1D>("mT_Stage1_TauScaleDown_diff", "MT_Stage1_TauScaleDown_diff", 2000, 0, 2000);
   ///crosscheck
+    ///qcd histos
+  int nstages=8;
+  helper->CreateHisto(nstages,"Tau_fake_pt",  5000, 0, 5000, "p_{T} [GeV]");
+  helper->CreateHisto(nstages,"Tau_nofake_pt",  5000, 0, 5000, "p_{T} [GeV]");
+  helper->CreateHisto("Tau_fake_pt_decay", 500, 0, 5000, 20, 0, 20, "p_{T} [GeV]", "decay mode");
+  helper->CreateHisto("Tau_nofake_pt_decay", 500, 0, 5000, 20, 0, 20, "p_{T} [GeV]", "decay mode");
+  helper->CreateHisto("Tau_fake_pt_eta", 500, 0, 5000, 20, -5, 5, "p_{T} [GeV]", "eta");
+  helper->CreateHisto("Tau_nofake_pt_eta", 500, 0, 5000, 20, -5, 5, "p_{T} [GeV]", "eta");
+  helper->CreateHisto("Tau_fake_pt_met", 500, 0, 5000, 500, 0, 5000, "p_{T} [GeV]", "MET");
+  helper->CreateHisto("Tau_nofake_pt_met", 500, 0, 5000, 500, 0, 5000, "p_{T} [GeV]", "MET");
+  helper->CreateHisto(nstages,"Tau_fake_pt_true",  5000, 0, 5000, "p_{T} [GeV]");
+  helper->CreateHisto(nstages,"Tau_nofake_pt_true",  5000, 0, 5000, "p_{T} [GeV]");
+  helper->CreateHisto("Tau_fake_pt_decay_true", 500, 0, 5000, 20, 0, 20, "p_{T} [GeV]", "decay mode");
+  helper->CreateHisto("Tau_nofake_pt_decay_true", 500, 0, 5000, 20, 0, 20, "p_{T} [GeV]", "decay mode");
+  helper->CreateHisto("Tau_fake_pt_eta_true", 500, 0, 5000, 20, -5, 5, "p_{T} [GeV]", "eta");
+  helper->CreateHisto("Tau_nofake_pt_eta_true", 500, 0, 5000, 20, -5, 5, "p_{T} [GeV]", "eta");
+  helper->CreateHisto("Tau_fake_pt_met_true", 500, 0, 5000, 500, 0, 5000, "p_{T} [GeV]", "MET");
+  helper->CreateHisto("Tau_nofake_pt_met_true", 500, 0, 5000, 500, 0, 5000, "p_{T} [GeV]", "MET");
+  if(not RunOnData){
+      for(std::string gen : {"lightquark","gluon","bquark","lightlepton","unmatched"}){
+          helper->CreateHisto(nstages,Form("Tau_fake_pt_%s",gen.c_str()),  5000, 0, 5000, "p_{T} [GeV]");
+          helper->CreateHisto(nstages,Form("Tau_nofake_pt_%s",gen.c_str()),  5000, 0, 5000, "p_{T} [GeV]");
+      }
+  }
 
+  ///k-factor
+  m_kfactorFile_ele= new TFile(KFactorE_.c_str(),"READ");
+  m_kfactorHist_ele[0] = (TH1D*) m_kfactorFile_ele->Get("k_fac_p");
+  m_kfactorHist_ele[1] = (TH1D*) m_kfactorFile_ele->Get("k_fac_m");
+  m_kfactorHist_ele[2] = (TH1D*) m_kfactorFile_ele->Get("k_fac_mean");
 
+  m_kfactorFile_muo= new TFile(KFactorMu_.c_str(),"READ");
+  m_kfactorHist_muo[0] = (TH1D*) m_kfactorFile_muo->Get("k_fac_p");
+  m_kfactorHist_muo[1] = (TH1D*) m_kfactorFile_muo->Get("k_fac_m");
+  m_kfactorHist_muo[2] = (TH1D*) m_kfactorFile_muo->Get("k_fac_mean");
 
+  m_kfactorFile_tau= new TFile(KFactorTau_.c_str(),"READ");
+  m_kfactorHist_tau[0] = (TH1D*) m_kfactorFile_tau->Get("k_fac_p");
+  m_kfactorHist_tau[1] = (TH1D*) m_kfactorFile_tau->Get("k_fac_m");
+  m_kfactorHist_tau[2] = (TH1D*) m_kfactorFile_tau->Get("k_fac_mean");
+
+  // discriminators
+  d_mydisc= {
+        "byLooseCombinedIsolationDeltaBetaCorr3Hits",
+        "byMediumCombinedIsolationDeltaBetaCorr3Hits",
+        "byPhotonPtSumOutsideSignalCone",
+        "byTightCombinedIsolationDeltaBetaCorr3Hits",
+    };
 
   h1_recoVtx_NoPUWt = histoDir.make<TH1D>("recoVtx_NoPUWt", "RecoVtx_NoPUWt", 100, 0, 100);
   h1_recoVtx_WithPUWt = histoDir.make<TH1D>("recoVtx_WithPUWt", "RecoVtx_WithPUWt", 100, 0, 100);
@@ -451,10 +603,6 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
       h1_MT_Stage1_pdfWt[i] = new TH1F(histname_MT,"",nbinMT, xlowMT, xupMT);
     }
   }
-  //
-
-  //
-
   if (!RunOnData) {
     LumiWeights_ = edm::LumiReWeighting(pileupMC_, pileupData_, "pileup", "pileup");
     LumiWeights_UP_ = edm::LumiReWeighting(pileupMC_, pileupData_UP_, "pileup", "pileup");
@@ -604,6 +752,9 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   Event = iEvent.id().event();
   ////std::cout << "\n --EVENT-- " << Event << std::endl;
 
+
+  //-- kfactor --//
+  wmass_stored=0;
   //-- probValue --//
   //-- https://github.com/cms-sw/cmssw/blob/CMSSW_8_1_X/SimGeneral/MixingModule/python/mix_2016_25ns_SpringMC_PUScenarioV1_PoissonOOTPU_cfi.py --//
   //----------//
@@ -701,29 +852,45 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   const Candidate * MyTau;
   // const Candidate * MyTauSel=0;
   double TauPt_Gen=0;
+
+  k_fak_stored=1;
   if (!RunOnData) {
     //--GenParticles--//
-    Handle<edm::View<reco::GenParticle> > pruned;
+    //Handle<edm::View<reco::GenParticle> > pruned;
     //std::cout << pruned <<
     iEvent.getByToken(prunedGenToken_,pruned);
 
     Handle<edm::View<pat::PackedGenParticle> > packed;
     iEvent.getByToken(packedGenToken_,packed);
 
+
+    ///-- W k-factor --///
+    k_fak_stored=applyWKfactor(1,pruned);
+    //std::cout << k_fak_stored << std::endl;
+    final_weight=final_weight*k_fak_stored;
+
+
+
     for(size_t i=0; i<pruned->size();i++){
-      if(   (abs((*pruned)[i].pdgId())==15) && ( ((*pruned)[i].status()==2) )) {
-    MyTau = &(*pruned)[i];
-    if ( (MyTau->pt()>20.0)  &&  (fabs(MyTau->eta())<2.3)  )  {
-      // MyTauSel=MyTau;
-      TauPt_Gen=MyTau->pt();
-      h1_TauPt_Gen->Fill(TauPt_Gen);
-      tauGen_p4[nGenTau].SetPxPyPzE(MyTau->px(),MyTau->py(),MyTau->pz(),MyTau->energy());
-      nGenTau++;
-      // std::cout << " pt " << TauPt_Gen << " nMother=" << MyTau->numberOfMothers() << " mother pdgID = " << MyTau->mother(0)->pdgId() << " mother status = " << MyTau->mother(0)->status()  << std::endl;
-      //  const Candidate * MotherOfMyTau=MyTau->mother(0);
-    }
+        if(   (abs((*pruned)[i].pdgId())==15) && ( ((*pruned)[i].status()==2) )) {
+            MyTau = &(*pruned)[i];
+            if ( (MyTau->pt()>20.0)  &&  (fabs(MyTau->eta())<2.3)  )  {
+                // MyTauSel=MyTau;
+                TauPt_Gen=MyTau->pt();
+                h1_TauPt_Gen->Fill(TauPt_Gen);
+                tauGen_p4[nGenTau].SetPxPyPzE(MyTau->px(),MyTau->py(),MyTau->pz(),MyTau->energy());
+                nGenTau++;
+                //std::cout << " pt " << TauPt_Gen << " nMother=" << MyTau->numberOfMothers() << " mother pdgID = " << MyTau->mother(0)->pdgId() << " mother status = " << MyTau->mother(0)->status()  << std::endl;
+                //const Candidate * MotherOfMyTau=MyTau->mother(0);
+            }
+        }
       }
-    }
+
+      //if(   (abs((*pruned)[i].pdgId())==16) && ( ((*pruned)[i].status()==2)) && (sel_tau==true)) {
+          //MyNu= &(*pruned)[i]; //used for calculating the W mass
+          //MyNu->px(); // to get rid of not use warning
+      //}
+
   }
   ////  std::cout << "nGenTau=" << nGenTau << std::endl;
   //   if ((!RunOnData) && (nGenTau>1))   std::cout << "\n#### #### #### ######### nGenTau=" << nGenTau << std::endl;
@@ -752,6 +919,21 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
      //        << std::endl;
      if ( (names.triggerName(i)).find("HLT_LooseIsoPFTau50_Trk30_eta2p1_MET90") != std::string::npos ) {
        passTauTrig=triggerBits->accept(i) ;
+     }
+     if ( (names.triggerName(i)).find("HLT_Mu45_eta2p1_v") != std::string::npos or
+          (names.triggerName(i)).find("HLT_Mu50_eta2p1_v") != std::string::npos or
+          (names.triggerName(i)).find("HLT_Mu50_v") != std::string::npos or
+          (names.triggerName(i)).find("HLT_IsoMu24_eta2p1_v") != std::string::npos or
+          (names.triggerName(i)).find("HLT_IsoMu24_eta2p1_IterTrk02_v") != std::string::npos
+     ) {
+       passMuonTrig=triggerBits->accept(i) ;
+     }
+     if ( (names.triggerName(i)).find("HLT_Ele115_CaloIdVT_GsfTrkIdT_v") != std::string::npos or
+          (names.triggerName(i)).find("HLT_Ele105_CaloIdVT_GsfTrkIdT_v") != std::string::npos or
+          (names.triggerName(i)).find("HLT_Ele27_eta2p1_WP75_Gsf_v") != std::string::npos or
+          (names.triggerName(i)).find("HLT_Ele27_eta2p1_WPLoose_Gsf_v") != std::string::npos
+     ) {
+       passEleTrig=triggerBits->accept(i) ;
      }
    }
    if (!RunOnData) passTauTrig=1;
@@ -916,11 +1098,14 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
    // std::cout << "MET=" << met_val << std::endl;
 
    int nTightMu=0;
-   edm::Handle<pat::MuonCollection> muons;
+   //edm::Handle<pat::MuonCollection> muons;  ///in header now
    iEvent.getByToken(muonToken_, muons);
    for (const pat::Muon &mu : *muons) {
      //https://twiki.cern.ch/twiki/bin/view/CMS/SWGuideMuonIdRun2#Tight_Muon
-     if ( (mu.pt()>20.0) &&  (abs(mu.eta())<2.4) && (mu.isTightMuon(PV)) &&  ((mu.isolationR03().sumPt/mu.pt())<0.10) ) nTightMu++ ;
+     if ( (mu.pt()>20.0) &&  (abs(mu.eta())<2.4) && (mu.isTightMuon(PV)) &&  ((mu.isolationR03().sumPt/mu.pt())<0.10) ) {
+         nTightMu++;
+         MuonIDPassed.push_back(1);}
+     else {MuonIDPassed.push_back(0);}
      //std::cout << "mu.pt()=" << mu.pt() << " abs(mu.eta())=" << abs(mu.eta()) << " mu.isolationR03().sumPt/mu.pt()=" << mu.isolationR03().sumPt/mu.pt() << std::endl;
      //       printf("muon with pt %4.1f, dz(PV) %+5.3f, POG loose id %d, tight id %d\n",
      //     mu.pt(), mu.muonBestTrack()->dz(PV.position()), mu.isLooseMuon(), mu.isTightMuon(PV));
@@ -929,7 +1114,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
    int nLooseEle=0;
    //   int nLooseEle_HighPt=0;
-   edm::Handle<pat::ElectronCollection> electrons;
+   //edm::Handle<pat::ElectronCollection> electrons;///in header now
    iEvent.getByToken(electronToken_, electrons);
    //   std::cout << "nEle = " << electrons->size() << std::endl;
    for (const pat::Electron &el : *electrons) {
@@ -937,14 +1122,18 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
      //std::cout <<      el.electronIDs().front().first << std::endl;
      if (el.pt() < 5) continue;
      //https://twiki.cern.ch/twiki/bin/view/CMS/CutBasedElectronIdentificationRun2
-     if ( (el.pt()>20) &&  ( abs(el.eta())<2.5 )  && (el.electronID("cutBasedElectronID-Spring15-25ns-V1-standalone-loose")>6) ) nLooseEle++;
-
+     //std::cout << "ele pt " << el.pt() << " ele eta" << abs(el.eta()) << " ele id " << el.electronID("cutBasedElectronID-Spring15-25ns-V1-standalone-loose") << std::endl;
+     if ( (el.pt()>20) &&  ( abs(el.eta())<2.5 )  && (el.electronID("cutBasedElectronID-Spring15-25ns-V1-standalone-loose")>6) ){
+     //if ( (el.pt()>20) &&  ( abs(el.eta())<2.5 )  && (el.electronID("cutBasedElectronID-Summer16-80X-V1-loose")>6) ){
+         nLooseEle++;
+         EleIDPassed.push_back(1);}
+     else {EleIDPassed.push_back(0);}
      //printf("elec with pt %4.1f, supercluster eta %+5.3f, sigmaIetaIeta %.3f  ",
      //      el.pt(), el.superCluster()->eta(), el.sigmaIetaIeta()  );
    }
-   //  std::cout << "nLooseEle=" << nLooseEle << std::endl;
+     //std::cout << "nLooseEle=" << nLooseEle << std::endl;
 
-   edm::Handle<pat::TauCollection> taus;
+   //edm::Handle<pat::TauCollection> taus;///in header now
    int nGoodTau=0;
    double tau_pt[10]={0};
    double tau_phi[10]={0};
@@ -980,9 +1169,9 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
      if (PassTauID_NonIsolated(tau)==true) {
        tau_nonIso.SetPxPyPzE(tau.px(),tau.py(),tau.pz(),tau.energy());
        if (PassTauAcceptance(tau_nonIso)==true) {
-     tau_pt_nonIso[nGoodNonIsoTau]=tau_nonIso.Pt();
-     tau_phi_nonIso[nGoodNonIsoTau]=tau_nonIso.Phi();
-     nGoodNonIsoTau++;
+             tau_pt_nonIso[nGoodNonIsoTau]=tau_nonIso.Pt();
+             tau_phi_nonIso[nGoodNonIsoTau]=tau_nonIso.Phi();
+             nGoodNonIsoTau++;
        }
      }
 
@@ -993,26 +1182,26 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
        tau_ScaleDown.SetPxPyPzE((1-tauScaleShift)*(tau.px()),(1-tauScaleShift)*(tau.py()),(1-tauScaleShift)*(tau.pz()),(1-tauScaleShift)*(tau.energy()));
 
        if (PassTauAcceptance(tau_NoShift)==true) {
-     // std::cout << "Tau selected" << std::endl;
-     tau_pt[nGoodTau]=tau_NoShift.Pt();
-     tau_phi[nGoodTau]=tau_NoShift.Phi();
-     nGoodTau++;
+             // std::cout << "Tau selected" << std::endl;
+             tau_pt[nGoodTau]=tau_NoShift.Pt();
+             tau_phi[nGoodTau]=tau_NoShift.Phi();
+             nGoodTau++;
        }
 
        //-Syst Up-//
        if (PassTauAcceptance(tau_ScaleUp)==true) {
-     // std::cout << "Tau selected" << std::endl;
-     tau_pt_ScaleUp[nGoodTau_ScaleUp]=tau_ScaleUp.Pt();
-     tau_phi_ScaleUp[nGoodTau_ScaleUp]=tau_ScaleUp.Phi();
-     nGoodTau_ScaleUp++;
+             // std::cout << "Tau selected" << std::endl;
+             tau_pt_ScaleUp[nGoodTau_ScaleUp]=tau_ScaleUp.Pt();
+             tau_phi_ScaleUp[nGoodTau_ScaleUp]=tau_ScaleUp.Phi();
+             nGoodTau_ScaleUp++;
        }
 
        //-Syst Down-//
        if (PassTauAcceptance(tau_ScaleDown)==true) {
-     // std::cout << "Tau selected" << std::endl;
-     tau_pt_ScaleDown[nGoodTau_ScaleDown]=tau_ScaleDown.Pt();
-     tau_phi_ScaleDown[nGoodTau_ScaleDown]=tau_ScaleDown.Phi();
-     nGoodTau_ScaleDown++;
+             // std::cout << "Tau selected" << std::endl;
+             tau_pt_ScaleDown[nGoodTau_ScaleDown]=tau_ScaleDown.Pt();
+             tau_phi_ScaleDown[nGoodTau_ScaleDown]=tau_ScaleDown.Phi();
+             nGoodTau_ScaleDown++;
        }
      }
    }
@@ -1053,39 +1242,43 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
        }
        //--Systematics--//
        if ( (PassFinalCuts(nGoodTau, met_val_JetEnUp,met_phi_JetEnUp,tau_pt[0],tau_phi[0] ) == true) ) {
-     //std::cout << "*metUncert_JetEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-     double MT_metUncert_JetEnUp = sqrt(2*tau_pt[0]*met_val_JetEnUp*(1- cos(dphi_tau_met)));
-     h1_MT_Stage1_metUncert_JetEnUp->Fill(MT_metUncert_JetEnUp,final_weight);
+             //std::cout << "*metUncert_JetEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
+             double MT_metUncert_JetEnUp = sqrt(2*tau_pt[0]*met_val_JetEnUp*(1- cos(dphi_tau_met)));  // always use the same dphi? or shifted dphi?
+             //double MT_metUncert_JetEnUp_test = calcMT(tau_NoShift,met,pat::MET::JetEnUp);
+             //if (MT_metUncert_JetEnUp-MT_metUncert_JetEnUp_test != 0){
+                 //std::cout << MT_metUncert_JetEnUp << " " << MT_metUncert_JetEnUp_test << " " << MT_metUncert_JetEnUp-MT_metUncert_JetEnUp_test << std::endl;
+             //}
+             h1_MT_Stage1_metUncert_JetEnUp->Fill(MT_metUncert_JetEnUp,final_weight);
        }
        ///
        if ( (PassFinalCuts(nGoodTau, met_val_JetEnDown,met_phi_JetEnDown,tau_pt[0],tau_phi[0]) == true) ) {
-     //std::cout << "*metUncert_JetEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-     double MT_metUncert_JetEnDown = sqrt(2*tau_pt[0]*met_val_JetEnDown*(1- cos(dphi_tau_met)));
-     h1_MT_Stage1_metUncert_JetEnDown->Fill(MT_metUncert_JetEnDown,final_weight);
+             //std::cout << "*metUncert_JetEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
+             double MT_metUncert_JetEnDown = sqrt(2*tau_pt[0]*met_val_JetEnDown*(1- cos(dphi_tau_met)));
+             h1_MT_Stage1_metUncert_JetEnDown->Fill(MT_metUncert_JetEnDown,final_weight);
        }
        ///
        if ( (PassFinalCuts(nGoodTau, met_val_JetResUp,met_phi_JetResUp,tau_pt[0],tau_phi[0]) == true) ) {
-     //std::cout << "*metUncert_JetResUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-     double MT_metUncert_JetResUp = sqrt(2*tau_pt[0]*met_val_JetResUp*(1- cos(dphi_tau_met)));
-     h1_MT_Stage1_metUncert_JetResUp->Fill(MT_metUncert_JetResUp,final_weight);
+             //std::cout << "*metUncert_JetResUp* dphi_tau_met=" << dphi_tau_met << std::endl;
+             double MT_metUncert_JetResUp = sqrt(2*tau_pt[0]*met_val_JetResUp*(1- cos(dphi_tau_met)));
+             h1_MT_Stage1_metUncert_JetResUp->Fill(MT_metUncert_JetResUp,final_weight);
        }
        ///
        if ( (PassFinalCuts(nGoodTau, met_val_JetResDown,met_phi_JetResDown,tau_pt[0],tau_phi[0]) == true) ) {
-     // std::cout << "*metUncert_JetResDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-     double MT_metUncert_JetResDown = sqrt(2*tau_pt[0]*met_val_JetResDown*(1- cos(dphi_tau_met)));
-     h1_MT_Stage1_metUncert_JetResDown->Fill(MT_metUncert_JetResDown,final_weight);
+             // std::cout << "*metUncert_JetResDown* dphi_tau_met=" << dphi_tau_met << std::endl;
+             double MT_metUncert_JetResDown = sqrt(2*tau_pt[0]*met_val_JetResDown*(1- cos(dphi_tau_met)));
+             h1_MT_Stage1_metUncert_JetResDown->Fill(MT_metUncert_JetResDown,final_weight);
        }
        ///
        if ( (PassFinalCuts(nGoodTau, met_val_MuonEnUp,met_phi_MuonEnUp,tau_pt[0],tau_phi[0]) == true) ) {
-     //std::cout << "*metUncert_MuonEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-     double MT_metUncert_MuonEnUp = sqrt(2*tau_pt[0]*met_val_MuonEnUp*(1- cos(dphi_tau_met)));
-     h1_MT_Stage1_metUncert_MuonEnUp->Fill(MT_metUncert_MuonEnUp,final_weight);
+             //std::cout << "*metUncert_MuonEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
+             double MT_metUncert_MuonEnUp = sqrt(2*tau_pt[0]*met_val_MuonEnUp*(1- cos(dphi_tau_met)));
+             h1_MT_Stage1_metUncert_MuonEnUp->Fill(MT_metUncert_MuonEnUp,final_weight);
        }
        ///
        if ( (PassFinalCuts(nGoodTau, met_val_MuonEnDown,met_phi_MuonEnDown,tau_pt[0],tau_phi[0]) == true) ) {
-     // std::cout << "*metUncert_MuonEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-     double MT_metUncert_MuonEnDown = sqrt(2*tau_pt[0]*met_val_MuonEnDown*(1- cos(dphi_tau_met)));
-     h1_MT_Stage1_metUncert_MuonEnDown->Fill(MT_metUncert_MuonEnDown,final_weight);
+             // std::cout << "*metUncert_MuonEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
+             double MT_metUncert_MuonEnDown = sqrt(2*tau_pt[0]*met_val_MuonEnDown*(1- cos(dphi_tau_met)));
+             h1_MT_Stage1_metUncert_MuonEnDown->Fill(MT_metUncert_MuonEnDown,final_weight);
        }
        ///
        if ( (PassFinalCuts(nGoodTau, met_val_ElectronEnUp,met_phi_ElectronEnUp,tau_pt[0],tau_phi[0]) == true) ) {
@@ -1131,21 +1324,21 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
        }
        ///
        if ( (PassFinalCuts(nGoodTau, met_val_UnclusteredEnDown,met_phi_UnclusteredEnDown,tau_pt[0],tau_phi[0]) == true) ) {
-     //std::cout << "*metUncert_UnclusteredEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-     double MT_metUncert_UnclusteredEnDown = sqrt(2*tau_pt[0]*met_val_UnclusteredEnDown*(1- cos(dphi_tau_met)));
-     h1_MT_Stage1_metUncert_UnclusteredEnDown->Fill(MT_metUncert_UnclusteredEnDown,final_weight);
+             //std::cout << "*metUncert_UnclusteredEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
+             double MT_metUncert_UnclusteredEnDown = sqrt(2*tau_pt[0]*met_val_UnclusteredEnDown*(1- cos(dphi_tau_met)));
+             h1_MT_Stage1_metUncert_UnclusteredEnDown->Fill(MT_metUncert_UnclusteredEnDown,final_weight);
        }
        ///--Tau Scale--///
        if ( (PassFinalCuts(nGoodTau_ScaleUp, met_val, met_phi, tau_pt_ScaleUp[0], tau_phi_ScaleUp[0]) == true) ) {
-     //std::cout << "*Tau Scale Up* dphi_tau_met=" << dphi_tau_met << std::endl;
-     double MT_TauScaleUp = sqrt(2*tau_pt_ScaleUp[0]*met_val*(1- cos(dphi_tau_met)));
-     h1_MT_Stage1_TauScaleUp->Fill(MT_TauScaleUp,final_weight);
+             //std::cout << "*Tau Scale Up* dphi_tau_met=" << dphi_tau_met << std::endl;
+             double MT_TauScaleUp = sqrt(2*tau_pt_ScaleUp[0]*met_val*(1- cos(dphi_tau_met)));
+             h1_MT_Stage1_TauScaleUp->Fill(MT_TauScaleUp,final_weight);
        }
        ///
        if ( (PassFinalCuts(nGoodTau_ScaleDown, met_val, met_phi, tau_pt_ScaleDown[0], tau_phi_ScaleDown[0]) == true) ) {
-     //std::cout << "*Tau Scale Down* dphi_tau_met=" << dphi_tau_met << std::endl;
-     double MT_TauScaleDown = sqrt(2*tau_pt_ScaleDown[0]*met_val*(1- cos(dphi_tau_met)));
-     h1_MT_Stage1_TauScaleDown->Fill(MT_TauScaleDown,final_weight);
+             //std::cout << "*Tau Scale Down* dphi_tau_met=" << dphi_tau_met << std::endl;
+             double MT_TauScaleDown = sqrt(2*tau_pt_ScaleDown[0]*met_val*(1- cos(dphi_tau_met)));
+             h1_MT_Stage1_TauScaleDown->Fill(MT_TauScaleDown,final_weight);
        }
        ///
 
@@ -1156,80 +1349,19 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
                 if ( (PassFinalCuts(tau_NoShift,met,mSyst[std::to_string(i)] ) == true) ) {
                  //std::cout << "*metUncert_JetEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
                  mSystHist[std::to_string(i)]->Fill(calcMT(tau_NoShift,met,mSyst[std::to_string(i)]),final_weight);
+                 setShiftedTree(tau_NoShift, met, final_weight, mSyst[std::to_string(i)]);
                }
-            }/*
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::JetEnUp ) == true) ) {
-             //std::cout << "*metUncert_JetEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-             //double MT_metUncert_JetEnUp = sqrt(2*tau_pt[0]*met_val_JetEnUp*(1- cos(dphi_tau_met)));  // always use the same dphi? or shifted dphi?
-             //double MT_metUncert_JetEnUp_test = calcMT(tau_NoShift,met,pat::MET::JetEnUp);
-             //std::cout << MT_metUncert_JetEnUp << " " << MT_metUncert_JetEnUp_test << " " << MT_metUncert_JetEnUp-MT_metUncert_JetEnUp_test << std::endl;
-             h1_MT_Stage1_metUncert_JetEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::JetEnUp),final_weight);
+            }
+            for (int i=15;i<=16;i++){
+                double kFactorShift=1.;
+                if (i==15){ kFactorShift=1.05;}
+                else if (i==16){ kFactorShift=0.95;}
+                if ( (PassFinalCuts(tau_NoShift,met) == true) ) {
+                 //std::cout << "*metUncert_JetEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
+                 mSystHist[std::to_string(i)]->Fill(calcMT(tau_NoShift,met),final_weight*kFactorShift);
+                 setShiftedTree(tau_NoShift, met, final_weight*kFactorShift);
                }
-               ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::JetEnDown ) == true) ) {
-             //std::cout << "*metUncert_JetEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-             h1_MT_Stage1_metUncert_JetEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::JetEnDown),final_weight);
-               }
-               ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::JetResUp ) == true) ) {
-             //std::cout << "*metUncert_JetResUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-             h1_MT_Stage1_metUncert_JetResUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::JetResUp),final_weight);
-               }
-               ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::JetResDown ) == true) ) {
-             // std::cout << "*metUncert_JetResDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-             h1_MT_Stage1_metUncert_JetResDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::JetResDown),final_weight);
-               }
-               ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::MuonEnUp ) == true) ) {
-             //std::cout << "*metUncert_MuonEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-             h1_MT_Stage1_metUncert_MuonEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::MuonEnUp),final_weight);
-               }
-               ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::MuonEnDown ) == true) ) {
-             // std::cout << "*metUncert_MuonEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-             h1_MT_Stage1_metUncert_MuonEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::MuonEnDown),final_weight);
-               }
-               ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::ElectronEnUp ) == true) ) {
-             //std::cout << "*metUncert_ElectronEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-            h1_MT_Stage1_metUncert_ElectronEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::ElectronEnUp),final_weight);
-              }
-              ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::ElectronEnDown ) == true) ) {
-             //std::cout << "*metUncert_ElectronEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-             h1_MT_Stage1_metUncert_ElectronEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::ElectronEnDown),final_weight);
-              }
-              ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::TauEnUp ) == true) ) {
-             //std::cout << "*metUncert_TauEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-            h1_MT_Stage1_metUncert_TauEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::TauEnUp),final_weight);
-              }
-              ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::TauEnDown ) == true) ) {
-             //std::cout << "*metUncert_TauEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-            h1_MT_Stage1_metUncert_TauEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::TauEnDown),final_weight);
-              }
-              ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::PhotonEnUp ) == true) ) {
-             //std::cout << "*metUncert_PhotonEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-            h1_MT_Stage1_metUncert_PhotonEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::PhotonEnUp),final_weight);
-              }
-              ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::PhotonEnDown ) == true) ) {
-             //std::cout << "*metUncert_PhotonEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-            h1_MT_Stage1_metUncert_PhotonEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::PhotonEnDown),final_weight);
-              }
-              ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::   UnclusteredEnUp ) == true) ) {
-             //std::cout << "*metUncert_UnclusteredEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-            h1_MT_Stage1_metUncert_UnclusteredEnUp_new->Fill(calcMT(tau_NoShift,met,pat::MET::UnclusteredEnUp),final_weight);
-              }
-               ///
-               if ( (PassFinalCuts(tau_NoShift,met,pat::MET::UnclusteredEnDown ) == true) ) {
-             //std::cout << "*metUncert_UnclusteredEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-             h1_MT_Stage1_metUncert_UnclusteredEnDown_new->Fill(calcMT(tau_NoShift,met,pat::MET::UnclusteredEnDown),final_weight);
-               }*/
+            }
                ///--Tau Scale--///
            }
            if (nGoodTau_ScaleUp==1){
@@ -1249,7 +1381,6 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
 
      }
-    //}
 
    //--------------//
    //-- Region A --// Only one non-isolated tau //
@@ -1328,7 +1459,17 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
 
    mytree->Fill();
-   Fill_QCD_Tree(true);
+   //QCDAnalyse();
+   //if (not RunOnData)
+   QCDAnalyseTau(met,final_weight,pruned);
+   //QCDAnalyseTau(met,final_weight);
+
+    //if(tau_NoShift.Pt()>80 && calcMT(tau_NoShift,met)>50){
+       Fill_QCD_Tree(true,tau_NoShift,met,final_weight);
+       Fill_Tree(tau_NoShift,met,final_weight,"");
+       helper->Tree_Filler("reweighttree");
+    //}
+
 
 #ifdef THIS_IS_AN_EVENT_EXAMPLE
    Handle<ExampleData> pIn;
@@ -1349,7 +1490,7 @@ bool MiniAODAnalyzer::PassFinalCuts(int nGoodTau_, double met_val_,double met_ph
       double pToverEtMiss=tau_pt_/met_val_ ;
       if (pToverEtMiss>0.7 && pToverEtMiss<1.3) {
     // std::cout << "pToverEtMiss=" << pToverEtMiss << std::endl;
-    if (dphi_tau_met>2.4) {
+    if (fabs(dphi_tau_met)>2.4) {
       // std::cout << "dphi_tau_met=" << dphi_tau_met << std::endl;
       passed=true;
     }
@@ -1358,53 +1499,18 @@ bool MiniAODAnalyzer::PassFinalCuts(int nGoodTau_, double met_val_,double met_ph
   }
   return passed;
 }
+
 bool MiniAODAnalyzer::PassFinalCuts(TLorentzVector part1, const pat::MET part2, pat::MET::METUncertainty metUncert) {
-  bool passed=false;
-    if ( part2.shiftedPt(metUncert)>120 ) {
-      dphi_tau_met = deltaPhi(part1.Phi(),part2.shiftedPhi(metUncert));
-      double pToverEtMiss=part1.Pt()/part2.shiftedPt(metUncert) ;
-      if (pToverEtMiss>0.7 && pToverEtMiss<1.3) {
-        // std::cout << "pToverEtMiss=" << pToverEtMiss << std::endl;
-        if (dphi_tau_met>2.4) {
-          // std::cout << "dphi_tau_met=" << dphi_tau_met << std::endl;
-          passed=true;
-        }
-    }
-  }
-  return passed;
+    ///--- please make sure you asked explicitly for 1 good tau!! ---///
+    return PassFinalCuts(1,part2.shiftedPt(metUncert),part2.shiftedPhi(metUncert),part1.Pt(),part1.Phi());
 }
 bool MiniAODAnalyzer::PassFinalCuts(TLorentzVector part1, const pat::MET part2) {
-  bool passed=false;
-    if ( part2.pt()>120 ) {
-      dphi_tau_met = deltaPhi(part1.Phi(),part2.phi());
-      double pToverEtMiss=part1.Pt()/part2.pt() ;
-      if (pToverEtMiss>0.7 && pToverEtMiss<1.3) {
-        // std::cout << "pToverEtMiss=" << pToverEtMiss << std::endl;
-        if (dphi_tau_met>2.4) {
-          // std::cout << "dphi_tau_met=" << dphi_tau_met << std::endl;
-          passed=true;
-        }
-    }
-  }
-  return passed;
+    return PassFinalCuts(1,part2.pt(),part2.phi(),part1.Pt(),part1.Phi());
 }
 bool MiniAODAnalyzer::PassFinalCuts(int nGoodTau_,TLorentzVector part1, const pat::MET part2) {
-  bool passed=false;
-  if (nGoodTau_==1) {
-    if ( part2.pt()>120 ) {
-      dphi_tau_met = deltaPhi(part1.Phi(),part2.phi());
-      double pToverEtMiss=part1.Pt()/part2.pt() ;
-      if (pToverEtMiss>0.7 && pToverEtMiss<1.3) {
-        // std::cout << "pToverEtMiss=" << pToverEtMiss << std::endl;
-        if (dphi_tau_met>2.4) {
-          // std::cout << "dphi_tau_met=" << dphi_tau_met << std::endl;
-          passed=true;
-        }
-      }
-    }
-  }
-  return passed;
+    return PassFinalCuts(nGoodTau_,part2.pt(),part2.phi(),part1.Pt(),part1.Phi());
 }
+
 
 bool MiniAODAnalyzer::FindTauIDEfficiency(const edm::Event& iEvent, TLorentzVector gen_p4) {
 
@@ -1481,6 +1587,7 @@ MiniAODAnalyzer::beginJob()
   mytree->Branch("event_runNo",  &Run,   "event_runNo/I");
   mytree->Branch("event_evtNo",  &Event, "event_evtNo/I");
   //mytree->Branch("num_PU_vertices",&num_PU_vertices,"num_PU_vertices/I");
+  SetSystMap();
   Create_Trees();
   SetSystMap();
 
@@ -1540,6 +1647,7 @@ MiniAODAnalyzer::endJob()
    * "mytree" as to be reintroduced in the TFileService then
    * via mytree = fs->make<TTree>("tree", "tr");
   */
+  ///remove second root file
   rootFile_->cd();
   rootFile_->mkdir("mukherjee");
   rootFile_->cd("mukherjee");
@@ -1590,6 +1698,8 @@ MiniAODAnalyzer::endJob()
   //TFileDirectory subDir = fs->mkdir( "mySubDirectory" ); //testing
   //subDir.cd();
   //helper.WriteTree("qcdtree");
+
+
 }
 
 
@@ -1643,7 +1753,22 @@ void MiniAODAnalyzer::Create_Trees(){
   mLeptonTree["ThisWeight"]=0;
   mLeptonTree["lepton_type"]=0;
 
+
   helper->Tree_Creater( &mLeptonTree, "slimtree");
+
+  if(useReweighting==true){
+      mReweightTree["gen_mt"]=-1;
+      for (int i=0; i<=16;i++){
+          mReweightTree["gen_mt_"+mSystName[std::to_string(i)]]=-1;
+          mReweightTree["mt_"+mSystName[std::to_string(i)]]=-1;
+          mReweightTree["delta_phi_"+mSystName[std::to_string(i)]]=-1;
+          mReweightTree["ThisWeight_"+mSystName[std::to_string(i)]]=-1;
+          mReweightTree["met_"+mSystName[std::to_string(i)]]=-1;
+      }
+    }
+
+
+  helper->Tree_Creater( &mReweightTree, "reweighttree");
 
   mQCDTree["lepton_n"]=0;
   mQCDTree["pt"]=0;
@@ -1668,22 +1793,155 @@ void MiniAODAnalyzer::Create_Trees(){
         }
 */
   helper->Tree_Creater( &mQCDTree, "qcdtree");
+
+
+
+  mFakeTree["mt"]=0;
+  mFakeTree["delta_phi"]=0;
+  mFakeTree["pt"]=0;
+  mFakeTree["met"]=0;
+  mFakeTree["phi"]=0;
+  mFakeTree["eta"]=0;
+  mFakeTree["met_phi"]=0;
+
+  mFakeTree["decay_mode"]=0;
+  mFakeTree["iso"]=0;
+  mFakeTree["tau_n"]=0;
+  mFakeTree["truth_match"]=0;
+
+  mFakeTree["lepton_type"]=0;
+  mFakeTree["lepton_mt"]=0;
+  mFakeTree["lepton_delta_phi"]=0;
+  mFakeTree["lepton_pt"]=0;
+  mFakeTree["lepton_eta"]=0;
+  mFakeTree["lepton_phi"]=0;
+  mFakeTree["lepton_trigger"]=0;
+
+
+  //general
+  mFakeTree["ThisWeight"]=0;
+  helper->Tree_Creater( &mFakeTree, "fakeTree");
+
+
+  //mFakeVectorTree["test"]=0;
+  //std::vector<float> vec(20);
+    ///needs to be fixed
+/*
+  std::vector<std::string> str= {"FakeCandPt",
+  //std::vector<char *> str= {"FakeCandPt",
+  "FakeCandPhi","FakeCandEta","FakeCandMET",
+  "FakeCandMETPhi","FakeCandDeltaPhi","FakeCandIso",
+  "FakeCandNoIso","FakeCandVetoNum"};
+  std::vector<std::vector<float>> vecOfVec= {FakeCandPt,
+  FakeCandPhi,FakeCandEta,FakeCandMET,
+  FakeCandMETPhi,FakeCandDeltaPhi,FakeCandIso,
+  FakeCandNoIso,FakeCandVetoNum};*/
+
+  //for (auto arg:str) mFakeVectorTree[arg]=vec;
+  //mFakeVectorTree["FakeCandPt"]=vec;
+  //mFakeVectorTree["FakeCandPhi"]=0;
+  //mFakeVectorTree["FakeCandEta"]=0;
+  //mFakeVectorTree["FakeCandMET"]=0;
+  //mFakeVectorTree["FakeCandMETPhi"]=0;
+  //mFakeVectorTree["FakeCandDeltaPhi"]=0;
+  //mFakeVectorTree["FakeCandIso"]=0;
+  //mFakeVectorTree["FakeCandNoIso"]=0;
+  //mFakeVectorTree["FakeCandVetoNum"]=0;
+  helper->Tree_Creater( &mFakeVectorTree, "fakeVectorTree");
+    ///needs to be fixed
+  //for (size_t i=0;i<str.size();i++) helper->SetFakeBranches("fakeVectorTree",str[i].c_str(),&(vecOfVec[i]));
+  //for (size_t i=0;i<str.size();i++) helper->SetFakeBranches("fakeVectorTree","FakeCandPt",&vecOfVec[i]);
+  //for (size_t i=0;i<str.size();i++) helper->SetFakeBranches("fakeVectorTree","FakeCandPt",&FakeCandPt);
+
+  helper->SetFakeBranches("fakeVectorTree","FakeCandPt",&FakeCandPt);
+  helper->SetFakeBranches("fakeVectorTree","FakeCandPhi",&FakeCandPhi);
+  helper->SetFakeBranches("fakeVectorTree","FakeCandEta",&FakeCandEta);
+  helper->SetFakeBranches("fakeVectorTree","FakeCandDeltaPhi",&FakeCandDeltaPhi);
+  helper->SetFakeBranches("fakeVectorTree","FakeCandMET",&FakeCandMET);
+  helper->SetFakeBranches("fakeVectorTree","FakeCandMETPhi",&FakeCandMETPhi);
+  helper->SetFakeBranches("fakeVectorTree","FakeCandIso",&FakeCandIso);
+  helper->SetFakeBranches("fakeVectorTree","FakeCandNoIso",&FakeCandNoIso);
+  helper->SetFakeBranches("fakeVectorTree","FakeCandVetoNum",&FakeCandVetoNum);
+  helper->SetFakeBranches("fakeVectorTree","FakeCandDecayMode",&FakeCandDecayMode);
+  helper->SetFakeBranches("fakeVectorTree","FakeCandLeptonType",&FakeCandLeptonType);
+  helper->SetFakeBranches("fakeVectorTree","FakeCandLeptonMt",&FakeCandLeptonMt);
+  helper->SetFakeBranches("fakeVectorTree","FakeCandLeptonDeltaPhi",&FakeCandLeptonDeltaPhi);
+  helper->SetFakeBranches("fakeVectorTree","FakeCandLeptonPt",&FakeCandLeptonPt);
+  helper->SetFakeBranches("fakeVectorTree","FakeCandLeptonEta",&FakeCandLeptonEta);
+  helper->SetFakeBranches("fakeVectorTree","FakeCandLeptonPhi",&FakeCandLeptonPhi);
+  helper->SetFakeBranches("fakeVectorTree","FakeCandLeptonTrigger",&FakeCandLeptonTrigger);
+
+  //helper->SetFakeBranches("fakeVectorTree","FakeCandLorentz",&FakeCandLorentz);
 }
 
 
-void MiniAODAnalyzer::Fill_Tree(TLorentzVector sel_lepton, const pat::MET sel_met){
+void MiniAODAnalyzer::setShiftedTree(TLorentzVector sel_lepton, const pat::MET sel_met, double weight, pat::MET::METUncertainty metUncert){
+
+    if(useReweighting==true){
+        for (int i=1;i<=14;i++){
+            if ( (PassFinalCuts(sel_lepton,sel_met,mSyst[std::to_string(i)] ) == true) ) {
+                /// currently the tau is not given, maybe loop over all taus and find the match?
+                /*TLorentzVector tempP4 (0,0,0,0);
+                reco::GenParticle* genMatch=GetTruthMatch("Tau",tau);
+                tempP4.SetPxPyPzE(genMatch->px(),genMatch->py(),genMatch->pz(),genMatch->energy());
+                mReweightTree["gen_mt_"+mSystName[std::to_string(i)]]=calcMT(tempP4,sel_met,mSyst[std::to_string(i)]);//gen, has to be fixed*/
+                mReweightTree["gen_mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met,mSyst[std::to_string(i)]);//gen, has to be fixed
+                mReweightTree["mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met,mSyst[std::to_string(i)]);
+                mReweightTree["met_"+mSystName[std::to_string(i)]]=sel_met.shiftedPhi(metUncert);
+                mReweightTree["delta_phi_"+mSystName[std::to_string(i)]]=deltaPhi(sel_lepton.Phi(),sel_met.shiftedPhi(metUncert));
+                mReweightTree["ThisWeight_"+mSystName[std::to_string(i)]]=weight;
+            }
+        }
+        //for (int i=15;i<=16;i++){
+            //if ( (PassFinalCuts(sel_lepton,sel_met,mSyst[std::to_string(i)] ) == true) ) {
+                //mLeptonTree["gen_mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met);//gen, has to be fixed
+                //mLeptonTree["mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met,mSyst[std::to_string(i)]);
+                //mLeptonTree["met_"+mSystName[std::to_string(i)]]=sel_met.shiftedPhi(metUncert);
+                //mLeptonTree["delta_phi_"+mSystName[std::to_string(i)]]=deltaPhi(sel_lepton.Phi(),sel_met.shiftedPhi(metUncert));
+                //mLeptonTree["ThisWeight_"+mSystName[std::to_string(i)]]=weight;
+            //}
+        //}
+
+    }
+    //else{
+        //mLeptonTree["gen_mt"]=calcMT(sel_lepton,sel_met);//gen
+    //}
+
+}
+void MiniAODAnalyzer::setShiftedTree(TLorentzVector sel_lepton, const pat::MET sel_met, double weight){
+
+    if(useReweighting==true){
+        for (int i=15;i<=16;i++){
+            //std::cout << i << std::endl;
+            if ( (PassFinalCuts(sel_lepton,sel_met,mSyst[std::to_string(i)] ) == true) ) {
+                /*TLorentzVector tempP4 (0,0,0,0);
+                reco::GenParticle* genMatch=GetTruthMatch("Tau",tau);
+                tempP4.SetPxPyPzE(genMatch->px(),genMatch->py(),genMatch->pz(),genMatch->energy());
+                mReweightTree["gen_mt_"+mSystName[std::to_string(i)]]=calcMT(tempP4,sel_met);*/
+                mReweightTree["gen_mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met);
+                mReweightTree["mt_"+mSystName[std::to_string(i)]]=calcMT(sel_lepton,sel_met);
+                mReweightTree["met_"+mSystName[std::to_string(i)]]=sel_met.phi();
+                mReweightTree["delta_phi_"+mSystName[std::to_string(i)]]=deltaPhi(sel_lepton.Phi(),sel_met.phi());
+                mReweightTree["ThisWeight_"+mSystName[std::to_string(i)]]=weight;
+            }
+        }
+    }
+
+}
+void MiniAODAnalyzer::Fill_Tree(TLorentzVector sel_lepton, const pat::MET sel_met, double weight, std::string systematic){
 
     mLeptonTree["bjet1"]=0;
-    mLeptonTree["mt"]=MT(sel_lepton,sel_met);
-    mLeptonTree["delta_phi"]=deltaPhi(part1.Phi(),part2.phi());
-    mLeptonTree["pt"]=sel_lepton->Pt();
-    mLeptonTree["met"]=sel_met->pt();
-    mLeptonTree["lepton_phi"]=sel_lepton->Phi();
-    mLeptonTree["lepton_eta"]=sel_lepton->Eta();
-    mLeptonTree["met_phi"]=sel_met->phi();
-    //mLeptonTree["kfak"]=k_fak_stored;
+    mLeptonTree["mt"]=calcMT(sel_lepton,sel_met);
+    mLeptonTree["delta_phi"]=deltaPhi(sel_lepton.Phi(),sel_met.phi());
+    mLeptonTree["pt"]=sel_lepton.Pt();
+    mLeptonTree["met"]=sel_met.pt();
+    mLeptonTree["lepton_phi"]=sel_lepton.Phi();
+    mLeptonTree["lepton_eta"]=sel_lepton.Eta();
+    mLeptonTree["met_phi"]=sel_met.phi();
+    mLeptonTree["kfak"]=k_fak_stored;
+    //good for crosschecks
     /*
-     * if(JetList->size()>0){
+    if(JetList->size()>0){
         pxl::Particle* jet = (pxl::Particle*) JetList->at(0);
         mLeptonTree["jet1_et"]=jet->getPt();
         mLeptonTree["jet1_phi"]=jet->getPhi();
@@ -1694,78 +1952,82 @@ void MiniAODAnalyzer::Fill_Tree(TLorentzVector sel_lepton, const pat::MET sel_me
         mLeptonTree["jet1_et"]=-1;
         mLeptonTree["jet1_phi"]=99;
         mLeptonTree["jet1_eta"]=99;
-
-    }
+    }*/
     //PDF
-    if( not runOnData ){
-        mLeptonTree["id1"]=m_GenEvtView->getUserRecord("f1");
-        mLeptonTree["id2"]=m_GenEvtView->getUserRecord("f2");
-        mLeptonTree["x1"]=m_GenEvtView->getUserRecord("x1");
-        mLeptonTree["x2"]=m_GenEvtView->getUserRecord("x2");
-        mLeptonTree["qscale"]=m_GenEvtView->getUserRecord("Q");
+    //needed for reweighting
+    if( not RunOnData ){
+        mLeptonTree["id1"]=0;
+        mLeptonTree["id2"]=0;
+        mLeptonTree["x1"]=0;
+        mLeptonTree["x2"]=0;
+        mLeptonTree["qscale"]=0;
+        //mLeptonTree["id1"]=m_GenEvtView->getUserRecord("f1");
+        //mLeptonTree["id2"]=m_GenEvtView->getUserRecord("f2");
+        //mLeptonTree["x1"]=m_GenEvtView->getUserRecord("x1");
+        //mLeptonTree["x2"]=m_GenEvtView->getUserRecord("x2");
+        //mLeptonTree["qscale"]=m_GenEvtView->getUserRecord("Q");
     }
-    //general
+    //general*/
     mLeptonTree["ThisWeight"]=weight;
-    //mLeptonTree["lepton_type"]=sel_lepton->getUserRecord("id");
+
+    //needed when using different leptons
+    /*//mLeptonTree["lepton_type"]=sel_lepton->getUserRecord("id");
     mLeptonTree["lepton_type"]=sel_lepton->getPdgNumber();
     if(abs(sel_lepton->getPdgNumber())==11){
         mLeptonTree["highEtEleTrig"]=highEtTriggStored;
     }else{
         mLeptonTree["highEtEleTrig"]=0;
     }*/
-    //helper.Tree_Filler("slimtree");
+    helper->Tree_Filler("slimtree");
 }
 
-void MiniAODAnalyzer::Fill_QCD_Tree(bool iso){
+void MiniAODAnalyzer::Fill_QCD_Tree(bool iso,TLorentzVector sel_lepton, const pat::MET sel_met, double weight){
 
     // testing stuff
-    if(iso){
-        mQCDTree["lepton_n"]=3;
-    }
-    else{
-        mQCDTree["lepton_n"]=2;
-    }
-    helper->Tree_Filler("qcdtree");
+    //if(iso){
+        //mQCDTree["lepton_n"]=3;
+    //}
+    //else{
+        //mQCDTree["lepton_n"]=2;
+    //}
+    //helper->Tree_Filler("qcdtree");
 
-
-    /*
 
     if(iso){
         mQCDTree["lepton_n"]=0;
         mQCDTree["iso"]=iso;
         mQCDTree["ThisWeight"]=weight;
-        mQCDTree["QCDWeight"]=qcd_weight;
-        mQCDTree["met"]=sel_met->getPt();
-        mQCDTree["pt"]=sel_lepton->getPt();
-        mQCDTree["mt"]=MT(sel_lepton,sel_met);
-        mQCDTree["eta"]=sel_lepton->getEta();
-        mQCDTree["delta_phi"]=DeltaPhi(sel_lepton,sel_met);
-        mQCDTree["nvert"]=m_RecEvtView->getUserRecord("NumVertices");
-        if (sel_lepton->getCharge() > 0){
-            mQCDTree["mtpos"]=MT(sel_lepton,sel_met);
-        }
-        if (sel_lepton->getCharge() < 0){
-            mQCDTree["mtneg"]=MT(sel_lepton,sel_met);
-        }
-        if(abs(sel_lepton->getPdgNumber())==15){
-            mQCDTree["metTriggerd"]=sel_lepton->getUserRecord("metTriggered").toBool();
-        }
-        else{
-            mQCDTree["metTriggerd"]=0;
-        }
-        if(sel_lepton->hasUserRecord("decayMode")){
-            mQCDTree["decay_mode"]=sel_lepton->getUserRecord("decayMode").toDouble();
-        }else{
-            mQCDTree["decay_mode"]=-1;
-        }
-        if(abs(sel_lepton->getPdgNumber())==15 && m_do_complicated_tau_stuff){
-            for(auto idisc : d_mydisc){
-                mQCDTree[idisc]=sel_lepton->getUserRecord(idisc).toDouble();
-            }
-
-        }
-        MiniAODAnalyzer::Tree_Filler("qcdtree");
-    }else{
+        //mQCDTree["QCDWeight"]=qcd_weight;
+        mQCDTree["met"]=sel_met.pt();
+        mQCDTree["pt"]=sel_lepton.Pt();
+        mQCDTree["mt"]=calcMT(sel_lepton,sel_met);
+        mQCDTree["eta"]=sel_lepton.Eta();
+        mQCDTree["delta_phi"]=deltaPhi(sel_lepton.Phi(),sel_met.phi());
+        //mQCDTree["nvert"]=m_RecEvtView->getUserRecord("NumVertices");  // if there was a dependence on the nvertices, build dependend fakerate
+        //if (sel_lepton.charge() > 0){
+            //mQCDTree["mtpos"]=calcMT(sel_lepton,sel_met);
+        //}
+        //if (sel_lepton.charge() < 0){
+            //mQCDTree["mtneg"]=calcMT(sel_lepton,sel_met);
+        //}
+        //if(abs(sel_lepton->getPdgNumber())==15){
+            //mQCDTree["metTriggerd"]=sel_lepton->getUserRecord("metTriggered").toBool();
+        //}
+        //else{
+            //mQCDTree["metTriggerd"]=0;
+        //}
+        //if(sel_lepton->hasUserRecord("decayMode")){
+            //mQCDTree["decay_mode"]=sel_lepton->getUserRecord("decayMode").toDouble();
+        //}else{
+            //mQCDTree["decay_mode"]=-1;
+        //}
+        //if(abs(sel_lepton->getPdgNumber())==15 && m_do_complicated_tau_stuff){
+            //for(auto idisc : d_mydisc){
+                //mQCDTree[idisc]=sel_lepton->getUserRecord(idisc).toDouble();
+            //}
+        //}
+        helper->Tree_Filler("qcdtree");
+    }/*else{
         int i=0;
         for(auto thisQCDlepton : QCDLeptonList){
             mQCDTree["lepton_n"]=i;
@@ -1773,20 +2035,20 @@ void MiniAODAnalyzer::Fill_QCD_Tree(bool iso){
             mQCDTree["iso"]=iso;
             mQCDTree["ThisWeight"]=weight;
             mQCDTree["QCDWeight"]=qcd_weight;
-            mQCDTree["met"]=sel_met->getPt();
-            mQCDTree["mt"]=MT(thisQCDlepton,sel_met);
-            mQCDTree["pt"]=thisQCDlepton->getPt();
-            mQCDTree["eta"]=thisQCDlepton->getEta();
-            mQCDTree["delta_phi"]=DeltaPhi(thisQCDlepton,sel_met);
+            mQCDTree["met"]=sel_met.pt();
+            mQCDTree["pt"]=thisQCDlepton.Pt();
+            mQCDTree["mt"]=calcMT(thisQCDlepton,sel_met);
+            mQCDTree["eta"]=thisQCDlepton->Eta();
+            mQCDTree["delta_phi"]=deltaPhi(thisQCDlepton.Phi(),sel_met.phi());
             mQCDTree["nvert"]=m_RecEvtView->getUserRecord("NumVertices");
             if (thisQCDlepton->getCharge() > 0){
-                mQCDTree["mtpos"]=MT(thisQCDlepton,sel_met);
+                mQCDTree["mtpos"]=calcMT(thisQCDlepton,sel_met);
             }
             if (thisQCDlepton->getCharge() < 0){
                 mQCDTree["mtneg"]=MT(thisQCDlepton,sel_met);
             }
-            mQCDTree["lepton_type"]=thisQCDlepton->getPdgNumber();
-            if(abs(thisQCDlepton->getPdgNumber())==15){
+            mQCDTree["lepton_type"]=thisQCDlepton.pdgId();
+            if(abs(thisQCDlepton.pdgId())==15){
                 if(thisQCDlepton->hasUserRecord("metTriggered")){
                     mQCDTree["metTriggerd"]=thisQCDlepton->getUserRecord("metTriggered").toBool();
                 }else{
@@ -1809,10 +2071,10 @@ void MiniAODAnalyzer::Fill_QCD_Tree(bool iso){
                     mQCDTree[idisc]=thisQCDlepton->getUserRecord(idisc).toDouble();
                 }
             }
-            helper.Tree_Filler("qcdtree");
+            helper->Tree_Filler("qcdtree");
         }
-    }
-*/}
+    }*/
+}
 
 
 double MiniAODAnalyzer::calcMT(TLorentzVector part1, TLorentzVector part2) {
@@ -1820,46 +2082,126 @@ double MiniAODAnalyzer::calcMT(TLorentzVector part1, TLorentzVector part2) {
     return sqrt(mm);
 }
 double MiniAODAnalyzer::calcMT(TLorentzVector part1, const pat::MET part2) {
-    double mm = 2 * part1.Pt() * part2.pt() * ( 1. - cos(deltaPhi(part1.Phi(),part2.phi()) ));
-    return sqrt(mm);
+    TLorentzVector tempPart2P4 (0,0,0,0);
+    tempPart2P4.SetPxPyPzE(part2.px(),part2.py(),part2.pz(),part2.energy());
+    return calcMT(part1,tempPart2P4);
 }
 
 double MiniAODAnalyzer::calcMT(TLorentzVector part1, const pat::MET part2, pat::MET::METUncertainty metUncert) {
-//double MiniAODAnalyzer::calcMT(TLorentzVector part1, pat::MET part2, const edm::EventSetup evtSetup) {
     double mm = 2 * part1.Pt() * part2.shiftedPt(metUncert) * ( 1. - cos(deltaPhi(part1.Phi(),part2.shiftedPhi(metUncert)) ));
     return sqrt(mm);
 }
+double MiniAODAnalyzer::calcMT(const pat::Electron part1, const pat::MET part2) {
 
+    TLorentzVector tempPart1P4 (0,0,0,0);
+    tempPart1P4.SetPxPyPzE(part1.px(),part1.py(),part1.pz(),part1.energy());
+    TLorentzVector tempPart2P4 (0,0,0,0);
+    tempPart2P4.SetPxPyPzE(part2.px(),part2.py(),part2.pz(),part2.energy());
+    return calcMT(tempPart1P4,tempPart2P4);
+}
+double MiniAODAnalyzer::calcMT(const pat::Muon part1, const pat::MET part2) {
+
+    TLorentzVector tempPart1P4 (0,0,0,0);
+    tempPart1P4.SetPxPyPzE(part1.px(),part1.py(),part1.pz(),part1.energy());
+    TLorentzVector tempPart2P4 (0,0,0,0);
+    tempPart2P4.SetPxPyPzE(part2.px(),part2.py(),part2.pz(),part2.energy());
+    return calcMT(tempPart1P4,tempPart2P4);
+}
+double MiniAODAnalyzer::calcMT(const pat::Tau part1, const pat::MET part2) {
+
+    TLorentzVector tempPart1P4 (0,0,0,0);
+    tempPart1P4.SetPxPyPzE(part1.px(),part1.py(),part1.pz(),part1.energy());
+    TLorentzVector tempPart2P4 (0,0,0,0);
+    tempPart2P4.SetPxPyPzE(part2.px(),part2.py(),part2.pz(),part2.energy());
+    return calcMT(tempPart1P4,tempPart2P4);
+}
+
+double MiniAODAnalyzer::DeltaR(auto part,auto tau){
+
+    TLorentzVector tempPartP4 (0,0,0,0);
+    tempPartP4.SetPxPyPzE(part.px(),part.py(),part.pz(),part.energy());
+    TLorentzVector tempTauP4 (0,0,0,0);
+    tempTauP4.SetPxPyPzE(tau.px(),tau.py(),tau.pz(),tau.energy());
+    return tempTauP4.DeltaR(tempPartP4);
+}
+double MiniAODAnalyzer::DeltaR(pat::Muon part,pat::Tau tau){
+
+    TLorentzVector tempPartP4 (0,0,0,0);
+    tempPartP4.SetPxPyPzE(part.px(),part.py(),part.pz(),part.energy());
+    TLorentzVector tempTauP4 (0,0,0,0);
+    tempTauP4.SetPxPyPzE(tau.px(),tau.py(),tau.pz(),tau.energy());
+    return tempTauP4.DeltaR(tempPartP4);
+}
+double MiniAODAnalyzer::DeltaR(pat::Electron part,pat::Tau tau){
+
+    TLorentzVector tempPartP4 (0,0,0,0);
+    tempPartP4.SetPxPyPzE(part.px(),part.py(),part.pz(),part.energy());
+    TLorentzVector tempTauP4 (0,0,0,0);
+    tempTauP4.SetPxPyPzE(tau.px(),tau.py(),tau.pz(),tau.energy());
+    return tempTauP4.DeltaR(tempPartP4);
+}
+double MiniAODAnalyzer::DeltaPhi(pat::Electron part1, pat::MET part2){
+    return deltaPhi(part1.phi(),part2.phi());
+}
+double MiniAODAnalyzer::DeltaPhi(pat::Muon part1, pat::MET part2){
+    return deltaPhi(part1.phi(),part2.phi());
+}
+double MiniAODAnalyzer::DeltaPhi(pat::Tau part1, pat::MET part2){
+    return deltaPhi(part1.phi(),part2.phi());
+}
 
 void MiniAODAnalyzer::SetSystMap(){
+
+     //set syst names to use in setShifted
+  mSystName["0"]="";
   mSyst["1"]=pat::MET::JetEnUp;
   mSystHist["1"]=h1_MT_Stage1_metUncert_JetEnUp_new;
+  mSystName["1"]="JetEnUp";
   mSyst["2"]=pat::MET::JetEnDown;
   mSystHist["2"]=h1_MT_Stage1_metUncert_JetEnDown_new;
+  mSystName["2"]="JetEnDown";
   mSyst["3"]=pat::MET::JetResUp;
   mSystHist["3"]=h1_MT_Stage1_metUncert_JetResUp_new;
+  mSystName["3"]="JetResUp";
   mSyst["4"]=pat::MET::JetResDown;
   mSystHist["4"]=h1_MT_Stage1_metUncert_JetResDown_new;
+  mSystName["4"]="JetResDown";
   mSyst["5"]=pat::MET::MuonEnUp;
   mSystHist["5"]=h1_MT_Stage1_metUncert_MuonEnUp_new;
+  mSystName["5"]="MuonEnUp";
   mSyst["6"]=pat::MET::MuonEnDown;
   mSystHist["6"]=h1_MT_Stage1_metUncert_MuonEnDown_new;
+  mSystName["6"]="MuonEnDown";
   mSyst["7"]=pat::MET::ElectronEnUp;
   mSystHist["7"]=h1_MT_Stage1_metUncert_ElectronEnUp_new;
+  mSystName["7"]="EleEnUp";
   mSyst["8"]=pat::MET::ElectronEnDown;
   mSystHist["8"]=h1_MT_Stage1_metUncert_ElectronEnDown_new;
+  mSystName["8"]="EleEnDown";
   mSyst["9"]=pat::MET::TauEnUp;
   mSystHist["9"]=h1_MT_Stage1_metUncert_TauEnUp_new;
+  mSystName["9"]="TauEnUp";
   mSyst["10"]=pat::MET::TauEnDown;
   mSystHist["10"]=h1_MT_Stage1_metUncert_TauEnDown_new;
+  mSystName["10"]="TauEnDown";
   mSyst["11"]=pat::MET::PhotonEnUp;
   mSystHist["11"]=h1_MT_Stage1_metUncert_PhotonEnUp_new;
+  mSystName["11"]="PhotonEnUp";
   mSyst["12"]=pat::MET::PhotonEnDown;
   mSystHist["12"]=h1_MT_Stage1_metUncert_PhotonEnDown_new;
+  mSystName["12"]="PhotonEnDown";
   mSyst["13"]=pat::MET::UnclusteredEnUp;
   mSystHist["13"]=h1_MT_Stage1_metUncert_UnclusteredEnUp_new;
+  mSystName["13"]="UnclusteredEnUp";
   mSyst["14"]=pat::MET::UnclusteredEnDown;
   mSystHist["14"]=h1_MT_Stage1_metUncert_UnclusteredEnDown_new;
+  mSystName["14"]="UnclusteredEnDown";
+  //mSyst["15"]=0;
+  mSystHist["15"]=h1_MT_Stage1_kFactorUp;
+  mSystName["15"]="kFactorUp";
+  //mSyst["16"]=0;
+  mSystHist["16"]=h1_MT_Stage1_kFactorDown;
+  mSystName["16"]="kFactorDown";
     }
 
 /*
@@ -1873,9 +2215,708 @@ void MiniAODAnalyzer::SetSystMap(){
  * */
 
 
+double MiniAODAnalyzer::applyWKfactor(int mode, edm::Handle<edm::View<reco::GenParticle>> genPart){
+
+    WtoInt=sourceFileString.find("Wto");
+    WJetsInt=sourceFileString.find("WJets");
+    //std::cout << std::endl<< sourceFileString << " "<< WtoInt
+    //<< " " << WJetsInt    <<  " " << std::string::npos << std::endl;
+    //std::cout << sourceFileString.find("Wto") << std::endl;
+    bool applyKfactor=false;
+    if (WtoInt!=std::string::npos or WJetsInt!=std::string::npos){
+        applyKfactor=true;
+    }
+    //std::cout << applyKfactor << std::endl;
+
+    ///--- mode 1 (multiplicative) is legacy and should not be used ---///
+    if( not (mode==1 || mode==0) ){
+        throw std::runtime_error("specialAna.cc: The k-faktor must be additive (mode=0) or multiplicative (mode=1) yours is "+std::to_string(mode));
+    }
+
+    if (applyKfactor==true){
+        double mass=getWmass(genPart);
+        int leptonID=getWdecay(genPart);
+        double k_faktor=1.;
+        if(mass>0){
+            if(leptonID==11){
+                k_faktor=m_kfactorHist_ele[mode]->GetBinContent(m_kfactorHist_ele[mode]->FindBin(mass));
+            }else if(leptonID==13){
+                k_faktor=m_kfactorHist_muo[mode]->GetBinContent(m_kfactorHist_muo[mode]->FindBin(mass));
+            }else if(leptonID==15){
+                k_faktor=m_kfactorHist_tau[mode]->GetBinContent(m_kfactorHist_tau[mode]->FindBin(mass));
+            }
+        }
+        if (k_faktor<0){
+            k_faktor=1.;
+        }
+        //weight*=k_faktor;
+        return k_faktor;
+    }
+    else{
+        return 1;
+    }
+}
 
 
+int MiniAODAnalyzer::getWdecay(edm::Handle<edm::View<reco::GenParticle>> genPart){
+    int temp_id=0;
+    for(size_t i=0; i<genPart->size();i++){
+        if (abs((*genPart)[i].pdgId())==15 or abs((*genPart)[i].pdgId())==13 or abs((*genPart)[i].pdgId())==11){
+            temp_id=abs((*genPart)[i].pdgId());
+            break;
+        }
+    }
+    return temp_id;
+}
+
+
+double MiniAODAnalyzer::getWmass(edm::Handle<edm::View<reco::GenParticle>> genPart){
+    //std::cout << "wmass_stored is " << wmass_stored << std::endl;
+    if(wmass_stored!=0){
+        return wmass_stored;
+    }
+    double temp_W_mass=0;
+    bool First=false;
+    bool second=false;
+    int temp_i=0;
+
+    for(size_t i=0; i<genPart->size();i++){
+        if(abs((*genPart)[i].pdgId())==24 && First==false){
+            //std::cout << "ID is " << (*genPart)[i].pdgId() << std::endl;
+            //std::cout << "W mass from W is " << (*genPart)[i].mass() << std::endl;
+            First=true;
+            temp_W_mass=(*genPart)[i].mass();
+            break;
+        }
+        if (second==false){
+            if (abs((*genPart)[i].pdgId())==15 or abs((*genPart)[i].pdgId())==13 or abs((*genPart)[i].pdgId())==11){
+                temp_i=i;
+                second=true;
+                break;
+            }
+        }
+    }
+    if (second==true){
+        for(size_t i=0; i<genPart->size();i++){
+            int sign=(*genPart)[temp_i].pdgId()/abs((*genPart)[temp_i].pdgId());
+            if ( (*genPart)[i].pdgId()==(-1*((*genPart)[temp_i].pdgId()+sign))){
+                temp_W_mass=((*genPart)[i].p4()+(*genPart)[temp_i].p4()).mass();
+                break;
+            }
+        }
+    }
+    wmass_stored=temp_W_mass;
+    return wmass_stored;
+}
+
+/*
+void MiniAODAnalyzer::QCDAnalyse() {
+    //inverted isolation
+    if(sel_lepton!=0 or m_do_complicated_tau_stuff){
+        return;
+    }
+    int qcd_id=0;
+    bool passed=false;
+    bool passedPtMet=false;
+    bool passedDeltaPhi=false;
+
+    double m_leptonVetoPt=20;
+    int numVetoMuo=vetoNumber(MuonList,m_leptonVetoPt);
+    int numVetoTau=vetoNumberTau(TauList,m_leptonVetoPt);
+    int numVetoEle=vetoNumber(EleList,m_leptonVetoPt);
+
+
+    if( numVetoEle==0 && TauList->size()>=1 && numVetoMuo==0 ){
+        int passedID=0;
+        map<string,int> passedID_disc;
+        for(std::vector<std::string>::iterator disc_it = d_mydisc.begin(); disc_it != d_mydisc.end(); disc_it++){
+            passedID_disc[(*disc_it)]=0;
+        }
+        for( std::vector< pxl::Particle* >::iterator it = TauList->begin(); it != TauList->end(); ++it ) {
+
+            if(m_do_complicated_tau_stuff){
+                for(std::vector<std::string>::iterator disc_it = d_mydisc.begin(); disc_it != d_mydisc.end(); disc_it++){
+                    if(not ((*it)->getUserRecord( (*disc_it) ).toDouble()>0.5)){
+                        passedID_disc[(*disc_it)]++;
+                        (*it)->setPdgNumber(15);
+                        QCDLeptonList.push_back(*it);
+                    }
+                }
+            }else{
+                //if( Check_Tau_ID_no_iso(*it) ){
+                    //passedID++;
+                    //(*it)->setPdgNumber(15);
+                    //QCDLeptonList.push_back(*it);
+                //}
+            }
+        }
+        if(passedID>=1){
+            qcd_lepton=QCDLeptonList.at(0);
+            m_pt_min_cut=m_pt_min_cut_tau;
+            m_delta_phi_cut=m_delta_phi_cut_tau;
+            m_pt_met_min_cut=m_pt_met_min_cut_tau;
+            m_pt_met_max_cut=m_pt_met_max_cut_tau;
+
+            m_pt_met_min_cut_funk_root=m_pt_met_min_cut_funk_root_tau;
+            m_pt_met_max_cut_funk_root=m_pt_met_max_cut_funk_root_tau;
+            m_delta_phi_cut_funk_root=m_delta_phi_cut_funk_root_tau;
+            qcd_id=15;
+        }
+    }
+
+    if( EleList->size()>=1 && numVetoTau==0 && numVetoMuo==0 ){
+        int passedID=0;
+        for( std::vector< pxl::Particle* >::iterator it = EleList->begin(); it != EleList->end(); ++it ) {
+
+            if( (*it)->hasUserRecord("loosIDnoISO")){
+                if ( (*it)->getUserRecord("loosIDnoISO").toBool() or (*it)->getUserRecord("loosIDandISO").toBool() ){
+                    passedID++;
+                    (*it)->setPdgNumber(11);
+                    QCDLeptonList.push_back(*it);
+                }
+            }
+            //we can not do the fr if we tag the electrons!!
+            //else if (EleList->size()==1){
+                //passedID++;
+                //tmpEle=( pxl::Particle* ) EleList->at(0);
+                //break;
+            //}
+        }
+        //cout<<passedID<<endl;
+        if(passedID>=1){
+            qcd_lepton=QCDLeptonList.at(0);
+            m_pt_min_cut=m_pt_min_cut_ele;
+            m_delta_phi_cut=m_delta_phi_cut_ele;
+            m_pt_met_min_cut=m_pt_met_min_cut_ele;
+            m_pt_met_max_cut=m_pt_met_max_cut_ele;
+
+            m_pt_met_min_cut_funk_root=m_pt_met_min_cut_funk_root_ele;
+            m_pt_met_max_cut_funk_root=m_pt_met_max_cut_funk_root_ele;
+            m_delta_phi_cut_funk_root=m_delta_phi_cut_funk_root_ele;
+            qcd_id=11;
+        }
+    }
+    if( numVetoEle==0 && numVetoTau==0 && MuonList->size()>=1 ){
+        int passedID=0;
+        for( std::vector< pxl::Particle* >::iterator it = MuonList->begin(); it != MuonList->end(); ++it ) {
+            if( (*it)->hasUserRecord("ISOfailed")){
+                if (  (*it)->getUserRecord("ISOfailed").toBool() ){
+                    passedID++;
+                    (*it)->setPdgNumber(13);
+                    QCDLeptonList.push_back(*it);
+                }
+            }
+            //we can not do the fr if we tag the muons!!
+            //else if (MuonList->size()==1){
+                //passedID++;
+                //tmpMuo=( pxl::Particle* ) MuonList->at(0);
+                //break;
+            //}
+        }
+        if(passedID>=1){
+            qcd_lepton=QCDLeptonList.at(0);
+            m_pt_min_cut=m_pt_min_cut_muo;
+            m_delta_phi_cut=m_delta_phi_cut_muo;
+            m_pt_met_min_cut=m_pt_met_min_cut_muo;
+            m_pt_met_max_cut=m_pt_met_max_cut_muo;
+
+            m_pt_met_min_cut_funk_root=m_pt_met_min_cut_funk_root_muo;
+            m_pt_met_max_cut_funk_root=m_pt_met_max_cut_funk_root_muo;
+            m_delta_phi_cut_funk_root=m_delta_phi_cut_funk_root_muo;
+            qcd_id=13;
+        }
+    }
+
+    if(sel_met && qcd_lepton && qcd_lepton->getPt()>m_pt_min_cut){
+        if(qcd_id==11){
+            qcd_weight = max(0.,qcd_weight_ele_pt->GetBinContent(qcd_weight_ele_pt->FindBin(qcd_lepton->getPt())));
+            for(unsigned int i=1;  i<QCDLeptonList.size();i++){
+                qcd_weight*=(1-max(0.,qcd_weight_ele_pt->GetBinContent(qcd_weight_ele_pt->FindBin(QCDLeptonList[i]->getPt()))));
+            }
+            //for(unsigned int j=0;  j<QCDLeptonList.size();j++){
+                //qcd_weight = max(0.,qcd_weight_ele_pt->GetBinContent(qcd_weight_ele_pt->FindBin(QCDLeptonList[j]->getPt())));
+                //for(unsigned int i=0;  i<QCDLeptonList.size();i++){
+                    //if(i==j){
+                        //continue;
+                    //}
+                    //qcd_weight*=(1-max(0.,qcd_weight_ele_pt->GetBinContent(qcd_weight_ele_pt->FindBin(QCDLeptonList[i]->getPt()))));
+                //}
+            //}
+        }
+
+        if(qcd_id==13){
+            qcd_weight = max(0.,qcd_weight_muo_pt->GetBinContent(qcd_weight_muo_pt->FindBin(qcd_lepton->getPt())));
+        }
+        if(qcd_id==15){
+            qcd_weight = max(0.,qcd_weight_tau_pt->GetBinContent(qcd_weight_tau_pt->FindBin(qcd_lepton->getUserRecord("decayMode"))));
+        }
+        double mt=MT(qcd_lepton,sel_met);
+        m_pt_met_min_cut=   m_pt_met_min_cut_funk_root.Eval(mt);
+        m_pt_met_max_cut=   m_pt_met_max_cut_funk_root.Eval(mt);
+        m_delta_phi_cut=    m_delta_phi_cut_funk_root.Eval(mt);
+
+        if(qcd_lepton->getPt()/sel_met->getPt()>m_pt_met_min_cut && qcd_lepton->getPt()/sel_met->getPt()<m_pt_met_max_cut){
+            passedPtMet=true;
+        }
+        if(DeltaPhi(qcd_lepton->getPhi(),sel_met->getPhi())>m_delta_phi_cut){
+            passedDeltaPhi=true;
+        }
+        if (passedDeltaPhi && passedPtMet){
+            passed=true;
+        }
+    }
+    if(qcd_lepton){
+        qcd_lepton->setUserRecord("passedPtMet",passedPtMet);
+        qcd_lepton->setUserRecord("passedDeltaPhi",passedDeltaPhi);
+        qcd_lepton->setUserRecord("passed",passed);
+        qcd_lepton->setPdgNumber(qcd_id);
+    }
+
+}
+*/
+int MiniAODAnalyzer::vetoNumberEle(double ptTreshold,double vetoConeSize){
+    //make veto numbers
+    //we don't need std::vectors, do we?
+    int numVeto=0;
+    int posi=0;
+    for( auto part: *electrons) {
+        if( part.pt()>ptTreshold && (EleIDPassed[posi]==1) ){
+            bool veto_tau=false; //if particle is used as tau
+            int i=0;
+            for( auto tau : *taus ){
+                if( PassTauID(tau) && DeltaR(part,tau)<vetoConeSize){
+                    veto_tau=true;
+                }
+                i++;
+            }
+            if(not veto_tau){
+                numVeto++;
+            }
+        }else if(part.pt()<ptTreshold) {
+        ///    Lists are Pt sorted
+            break;
+        }
+        posi++;
+    }
+    return numVeto;
+}
+int MiniAODAnalyzer::vetoNumberMuon(double ptTreshold,double vetoConeSize){
+    //make veto numbers
+    //we don't need std::vectors, do we?
+    int numVeto=0;
+    int posi=0;
+    for( auto part: *muons) {
+        if( part.pt()>ptTreshold && (MuonIDPassed[posi]==1) ){
+            bool veto_tau=false; //if particle is used as tau
+            int i=0;
+            for( auto tau : *taus ){
+                if( PassTauID(tau) && DeltaR(part,tau)<vetoConeSize){
+                    veto_tau=true;
+                }
+                i++;
+            }
+            if(not veto_tau){
+                numVeto++;
+            }
+        }else if(part.pt()<ptTreshold) {
+        ///    Lists are Pt sorted
+            break;
+        }
+        posi++;
+    }
+    return numVeto;
+
+}
+
+
+int MiniAODAnalyzer::vetoNumberTau(double ptTreshold){
+    //make veto numbers
+    //we don't need std::vectors, do we?
+    int numVeto=0;
+    bool passedID=false;
+    for (auto tau: *taus){
+        passedID=false;
+        passedID=PassTauID(tau);
+        if( tau.pt()>ptTreshold && passedID ){
+            numVeto++;
+        }else if(tau.pt()<ptTreshold) {
+            ///Lists are Pt sorted
+            break;
+        }
+    }
+    return numVeto;
+}
+
+void MiniAODAnalyzer::QCDAnalyseTau( const pat::MET sel_met,double weight,edm::Handle<edm::View<reco::GenParticle>> genPart) {
+//void MiniAODAnalyzer::QCDAnalyseTau( const pat::MET sel_met) {
+
+    double ptTauTreshold=80;
+    double m_leptonVetoPt=20;
+    double vetoConeSize=0.3;
+    //int numVetoMuo=vetoNumberMuon(MuonList, m_leptonVetoPt,TauList,vetoConeSize);
+    int numVetoMuo=vetoNumberMuon(m_leptonVetoPt,vetoConeSize);
+    int numVetoTau=vetoNumberTau(ptTauTreshold);
+    int numVetoEle=vetoNumberEle(m_leptonVetoPt,vetoConeSize);
+
+    //std::cout << numVetoEle << " Muo Vetos " << numVetoMuo << " taus size "<<taus->size()<< std::endl;
+    if( ( (numVetoEle==1) xor (numVetoMuo==1 )) && taus->size()>=1){
+        pat::Electron eleCandi;
+        pat::Muon muoCandi;
+        int i=0;
+        bool eleBool=false;
+        for( auto part: *electrons) {
+            if( part.pt()>m_leptonVetoPt && EleIDPassed[i]==1 ){
+                eleCandi=(part);
+                eleBool=true;
+                break;
+            }
+            i++;
+        }
+        if (eleBool) std::cout << "electron passed " << std::endl;
+        i=0;
+        bool muonBool=false;
+        //for( auto part: MuonList) {
+        for( auto part: *muons) {
+            if( part.pt()>m_leptonVetoPt && MuonIDPassed[i]==1 ){
+                muoCandi=(part);
+                muonBool=true;
+                break;
+            }
+            i++;
+        }
+        if(eleBool==false and muonBool==false){
+            return;
+        }
+        /// make it shorter
+        FakeCandPt.clear();
+        FakeCandPhi.clear();
+        FakeCandEta.clear();
+        FakeCandMET.clear();
+        FakeCandMETPhi.clear();
+        FakeCandDeltaPhi.clear();
+        FakeCandIso.clear();
+        FakeCandNoIso.clear();
+        FakeCandVetoNum.clear();
+        FakeCandLorentz.clear();
+        FakeCandDecayMode.clear();
+        FakeCandLeptonType.clear();
+        FakeCandLeptonMt.clear();
+        FakeCandLeptonDeltaPhi.clear();
+        FakeCandLeptonPt.clear();
+        FakeCandLeptonEta.clear();
+        FakeCandLeptonPhi.clear();
+        FakeCandLeptonTrigger.clear();
+        for( auto tau: *taus ) {
+            if(muonBool && DeltaR(muoCandi,tau)<vetoConeSize){
+                continue;
+            }
+            if(eleBool &&  DeltaR(eleCandi,tau)<vetoConeSize){
+                continue;
+            }
+
+            if( not PassTauID_NonIsolated(tau)  and not PassTauID(tau)){
+                continue;
+            }
+            bool m_do_complicated_tau_stuff=false;
+            if(!m_do_complicated_tau_stuff){
+                //cout<<"ele   "<<eleTrig<<"   "<<eleCandi<<endl;
+                //cout<<"muon   "<<muoTrig<<"   "<<muoCandi<<endl;
+                //cout<<"------------------------- "<<endl;
+
+
+                mFakeTree["mt"]=calcMT(tau,sel_met);
+                FakeCandMt.push_back(calcMT(tau,sel_met));
+                mFakeTree["delta_phi"]=DeltaPhi(tau,sel_met);
+                FakeCandDeltaPhi.push_back(DeltaPhi(tau,sel_met));
+                mFakeTree["pt"]=tau.pt();
+                FakeCandPt.push_back(tau.pt());
+                mFakeTree["met"]=sel_met.pt();
+                FakeCandMET.push_back(sel_met.pt());
+                mFakeTree["phi"]=tau.phi();
+                FakeCandPhi.push_back(tau.phi());
+                mFakeTree["eta"]=tau.eta();
+                FakeCandEta.push_back(tau.eta());
+                mFakeTree["met_phi"]=sel_met.phi();
+                FakeCandMETPhi.push_back(sel_met.phi());
+                mFakeTree["iso"]=PassTauID(tau);
+                FakeCandIso.push_back(PassTauID(tau));
+                mFakeTree["noiso"]=PassTauID(tau);
+                FakeCandNoIso.push_back(PassTauID(tau));
+                mFakeTree["tau_n"]=numVetoTau;
+                FakeCandVetoNum.push_back(numVetoTau);
+                mFakeTree["decay_mode"]=tau.decayMode();
+                FakeCandDecayMode.push_back(tau.decayMode());
+
+
+
+/*                mFakeTree["truth_match"]=(not runOnData and Get_Truth_match("Tau",*it)) ;
+                if((*it)->hasUserRecord("decayMode")){
+                    mFakeTree["decay_mode"]=(*it)->getUserRecord("decayMode").toDouble();
+                }else{
+                    mFakeTree["decay_mode"]=-1;
+                }
+                */if(muonBool){
+                    mFakeTree["lepton_type"]=13;
+                    FakeCandLeptonType.push_back(13);
+                    mFakeTree["lepton_mt"]=calcMT(muoCandi,sel_met);
+                    FakeCandLeptonMt.push_back(calcMT(muoCandi,sel_met));
+                    mFakeTree["lepton_delta_phi"]=DeltaPhi(muoCandi,sel_met);
+                    FakeCandLeptonDeltaPhi.push_back(DeltaPhi(muoCandi,sel_met));
+                    mFakeTree["lepton_pt"]=muoCandi.pt();
+                    FakeCandLeptonPt.push_back(muoCandi.pt());
+                    mFakeTree["lepton_eta"]=muoCandi.eta();
+                    FakeCandLeptonEta.push_back(muoCandi.eta());
+                    mFakeTree["lepton_phi"]=muoCandi.phi();
+                    FakeCandLeptonPhi.push_back(muoCandi.phi());
+                    mFakeTree["lepton_trigger"]=passMuonTrig;
+                    FakeCandLeptonTrigger.push_back(passMuonTrig);
+                }
+                if (eleBool){
+                    mFakeTree["lepton_type"]=11;
+                    FakeCandLeptonType.push_back(11);
+                    mFakeTree["lepton_mt"]=calcMT(eleCandi,sel_met);
+                    FakeCandLeptonMt.push_back(calcMT(eleCandi,sel_met));
+                    mFakeTree["lepton_delta_phi"]=DeltaPhi(eleCandi,sel_met);
+                    FakeCandLeptonDeltaPhi.push_back(DeltaPhi(eleCandi,sel_met));
+                    mFakeTree["lepton_pt"]=eleCandi.pt();
+                    FakeCandLeptonPt.push_back(eleCandi.pt());
+                    mFakeTree["lepton_eta"]=eleCandi.eta();
+                    FakeCandLeptonEta.push_back(eleCandi.eta());
+                    mFakeTree["lepton_phi"]=eleCandi.phi();
+                    FakeCandLeptonPhi.push_back(eleCandi.phi());
+                    mFakeTree["lepton_trigger"]=passEleTrig;
+                    FakeCandLeptonTrigger.push_back(passEleTrig);
+                }
+
+                //general
+                mFakeTree["ThisWeight"]=weight;
+
+
+                helper->Tree_Filler("fakeTree");
+                if(PassTauID_NonIsolated(tau)){
+                    helper->Fill(0,"Tau_fake_pt",tau.pt(),weight);
+                    if(muonBool)
+                        helper->Fill(1,"Tau_fake_pt",muoCandi.pt(),weight);
+                    if(eleBool)
+                        helper->Fill(2,"Tau_fake_pt",eleCandi.pt(),weight);
+                    helper->Fill( "Tau_fake_pt_eta",tau.pt(),tau.eta(),weight );
+                    helper->Fill( "Tau_fake_pt_met",tau.pt(),sel_met.pt(),weight );
+                    helper->Fill( "Tau_fake_pt_decay",tau.pt(),tau.decayMode(),weight );
+                   //if(not RunOnData and GetTruthMatch("Tau",tau) ){
+                   if(not RunOnData  ){
+                       GetTruthMatch("Tau",tau);
+                        if(muonBool)
+                            helper->Fill(1,"Tau_fake_pt_true",muoCandi.pt(),weight);
+                            helper->Fill(3,"Tau_fake_pt_true",tau.pt(),weight);
+                        if(eleBool)
+                            helper->Fill(2,"Tau_fake_pt_true",eleCandi.pt(),weight);
+                            helper->Fill(4,"Tau_fake_pt_true",tau.pt(),weight);
+                        helper->Fill(0,"Tau_fake_pt_true",tau.pt(),weight);
+                        helper->Fill( "Tau_fake_pt_eta_true",tau.pt(),tau.eta(),weight );
+                        helper->Fill( "Tau_fake_pt_met_true",tau.pt(),sel_met.pt(),weight );
+                        helper->Fill( "Tau_fake_pt_decay_true",tau.pt(),tau.decayMode(),weight );
+                    }else if(not RunOnData ){
+                        reco::GenParticle* genMatch= GetTruthMatchAllFlavor(tau);
+                        if(genMatch){
+                            //lightquarks
+                            if(abs(genMatch->pdgId())<5){
+                                helper->Fill(0,"Tau_fake_pt_lightquark",tau.pt(),weight);
+                                //HistClass::Fill( "Tau_fake_pt_eta_lightquark",tau.pt(),tau.eta(),weight );
+                                //HistClass::Fill( "Tau_fake_pt_met_lightquark",tau.pt(),sel_met.pt(),weight );
+                            //b quarks
+                            }else if(abs(genMatch->pdgId())==5){
+                                helper->Fill(0,"Tau_fake_pt_bquark",tau.pt(),weight);
+                                //HistClass::Fill( "Tau_fake_pt_eta_bquark",tau.pt(),tau.eta(),weight );
+                                //HistClass::Fill( "Tau_fake_pt_met_bquark",tau.pt(),sel_met.pt(),weight );
+                            }else if(abs(genMatch->pdgId())==9 or abs(genMatch->pdgId())==21){
+                                helper->Fill(0,"Tau_fake_pt_gluon",tau.pt(),weight);
+                                //HistClass::Fill( "Tau_fake_pt_eta_gluon",tau.pt(),tau.eta(),weight );
+                                //HistClass::Fill( "Tau_fake_pt_met_gluon",tau.pt(),sel_met.pt(),weight );
+                            }else if(abs(genMatch->pdgId())==11 or abs(genMatch->pdgId())==13){
+                                 helper->Fill(0,"Tau_fake_pt_lightlepton",tau.pt(),weight);
+                                //HistClass::Fill( "Tau_fake_pt_eta_gluon",tau.pt(),tau.eta(),weight );
+                                //HistClass::Fill( "Tau_fake_pt_met_gluon",tau.pt(),sel_met.pt(),weight );
+                            }else{
+                                helper->Fill(0,"Tau_fake_pt_unmatched",tau.pt(),weight);
+                                std::cout<<"unassociated match: "<<genMatch->pdgId()<<std::endl;
+                            }
+
+                        }
+
+
+                    }
+                }
+                else if(PassTauID(tau)){
+                    helper->Fill(0,"Tau_nofake_pt",tau.pt(),weight);
+                    if(muonBool)
+                        helper->Fill(1,"Tau_nofake_pt",muoCandi.pt(),weight);
+                        helper->Fill(3,"Tau_nofake_pt",tau.pt(),weight);
+                    if(eleBool)
+                        helper->Fill(2,"Tau_nofake_pt",eleCandi.pt(),weight);
+                        helper->Fill(4,"Tau_nofake_pt",tau.pt(),weight);
+                    helper->Fill( "Tau_nofake_pt_eta",tau.pt(),tau.eta(), weight );
+                    helper->Fill( "Tau_fake_pt_met",tau.pt(),sel_met.pt(),weight );
+                    if(tau.decayMode())
+                        helper->Fill( "Tau_nofake_pt_decay",tau.pt(),tau.decayMode(), weight );
+                    if(not RunOnData and GetTruthMatch("Tau",tau) ){
+                        helper->Fill(0,"Tau_nofake_pt_true",tau.pt(),weight);
+                        helper->Fill( "Tau_nofake_pt_eta_true",tau.pt(),tau.eta(), weight );
+                        helper->Fill( "Tau_fake_pt_met_true",tau.pt(),sel_met.pt(),weight );
+                        if(tau.decayMode())
+                            helper->Fill( "Tau_nofake_pt_decay_true",tau.pt(),tau.decayMode(), weight );
+                    }else if(not RunOnData ){
+                        reco::GenParticle* genMatch= GetTruthMatchAllFlavor(tau);
+                        if(genMatch){
+                            //lightquarks
+                            if(abs(genMatch->pdgId())<5){
+                                helper->Fill(0,"Tau_nofake_pt_lightquark",tau.pt(),weight);
+                                //helper->Fill( "Tau_nofake_pt_eta_lightquark",tau.pt(),tau.eta(),weight );
+                                //helper->Fill( "Tau_nofake_pt_met_lightquark",tau.pt(),sel_met.pt(),weight );
+                            //b quarks
+                            }else if(abs(genMatch->pdgId())==5){
+                                helper->Fill(0,"Tau_nofake_pt_bquark",tau.pt(),weight);
+                                //helper->Fill( "Tau_nofake_pt_eta_bquark",tau.pt(),tau.eta(),weight );
+                                //helper->Fill( "Tau_nofake_pt_met_bquark",tau.pt(),sel_met.pt(),weight );
+                            }else if(abs(genMatch->pdgId())==9 or abs(genMatch->pdgId())==21){
+                                helper->Fill(0,"Tau_nofake_pt_gluon",tau.pt(),weight);
+                                //helper->Fill( "Tau_nofake_pt_eta_gluon",tau.pt(),tau.eta(),weight );
+                                //helper->Fill( "Tau_nofake_pt_met_gluon",tau.pt(),sel_met.pt(),weight );
+                            }else if(abs(genMatch->pdgId())==11 or abs(genMatch->pdgId())==13){
+                                 helper->Fill(0,"Tau_nofake_pt_lightlepton",tau.pt(),weight);
+                                //helper->Fill( "Tau_nofake_pt_eta_gluon",tau.pt(),tau.eta(),weight );
+                                //helper->Fill( "Tau_nofake_pt_met_gluon",tau.pt(),sel_met.pt(),weight );
+                            }else{
+                                helper->Fill(0,"Tau_nofake_pt_unmatched",tau.pt(),weight);
+                                std::cout<<"unassociated match: "<<genMatch->pdgId()<<std::endl;
+                            }
+
+                        }
+
+
+                    }
+
+                }
+            }/*else{//do complicated tau stuff
+                for(std::vector<std::string>::iterator disc_it = d_mydisc.begin(); disc_it != d_mydisc.end(); disc_it++){
+                    //if(PassTauID_NonIsolated(tau,*disc_it)){
+                    if(PassTauID_NonIsolated(tau)){
+                        helper->Fill(0,Form("Tau_fake_pt_%s",(*disc_it).c_str()),tau.pt(),weight);
+                        helper->Fill( Form("Tau_fake_pt_eta_%s",(*disc_it).c_str()),tau.pt(),tau.eta(),weight );
+                        helper->Fill( Form("Tau_fake_pt_met_%s",(*disc_it).c_str()),tau.pt(),sel_met.pt(),weight );
+                        if(tau.decayMode())
+                            helper->Fill( Form("Tau_fake_pt_decay_%s",(*disc_it).c_str()),tau.pt(),tau.decayMode().toDouble(),weight );
+                        if(not RunOnData and GetTruthMatch("Tau",tau) ){
+                            helper->Fill(0,Form("Tau_fake_pt_%s_true",(*disc_it).c_str()),tau.pt(),weight);
+                            helper->Fill( Form("Tau_fake_pt_eta_%s_true",(*disc_it).c_str()),tau.pt(),tau.eta(),weight );
+                            helper->Fill( Form("Tau_fake_pt_met_%s_true",(*disc_it).c_str()),tau.pt(),sel_met.pt(),weight );
+                            if(tau.decayMode())
+                                helper->Fill( Form("Tau_fake_pt_decay_%s_true",(*disc_it).c_str()),tau.pt(),tau.decayMode().toDouble(),weight );
+                        }
+                    }
+                    //else if(PassTauID(tau,*disc_it)){
+                    else if(PassTauID(tau)){
+                        helper->Fill(0,Form("Tau_nofake_pt_%s",(*disc_it).c_str()),tau.pt(),weight);
+                        helper->Fill( Form("Tau_nofake_pt_eta_%s",(*disc_it).c_str()),tau.pt(),tau.eta(), weight );
+                        helper->Fill( Form("Tau_fake_pt_met_%s",(*disc_it).c_str()),tau.pt(),sel_met.pt(),weight );
+                        if(tau-decayMode())
+                            helper->Fill( Form("Tau_nofake_pt_decay_%s",(*disc_it).c_str()),tau.pt(),tau.decayMode(), weight );
+                        if(not RunOnData and Get_Truth_match("Tau",tau) ){
+                            helper->Fill(0,Form("Tau_nofake_pt_%s_true",(*disc_it).c_str()),tau.pt(),weight);
+                            helper->Fill( Form("Tau_nofake_pt_eta_%s_true",(*disc_it).c_str()),tau.pt(),tau.eta(), weight );
+                            helper->Fill( Form("Tau_fake_pt_met_%s_true",(*disc_it).c_str()),tau.pt(),sel_met.pt(),weight );
+                            if(tau.decayMode())
+                                helper->Fill( Form("Tau_nofake_pt_decay_%s_true",(*disc_it).c_str()),tau.pt(),tau.decayMode(), weight );
+
+                        }
+                    }
+                }
+            }*/
+        }
+
+        //std::cout << FakeCandDeltaPhi.size() << " " << FakeCandPt.size() << std::endl;
+        /*
+        mFakeVectorTree["FakeCandPt"]=FakeCandPt;
+        mFakeVectorTree["FakeCandPhi"]=FakeCandPhi;
+        mFakeVectorTree["FakeCandEta"]=FakeCandEta;
+        mFakeVectorTree["FakeCandMET"]=FakeCandMET;
+        mFakeVectorTree["FakeCandMETPhi"]=FakeCandMETPhi;
+        mFakeVectorTree["FakeCandDeltaPhi"]=FakeCandDeltaPhi;
+        mFakeVectorTree["FakeCandIso"]=FakeCandIso;
+        mFakeVectorTree["FakeCandNoIso"]=FakeCandNoIso;
+        mFakeVectorTree["FakeCandVetoNum"]=FakeCandVetoNum;*/
+
+        //std::cout << FakeCandEta[-1] << std::endl;
+        helper->Tree_Filler("fakeVectorTree");
+    }
+}
+
+//reco::GenParticle MiniAODAnalyzer::GetTruthMatch(std::string name, auto lepton) {
+reco::GenParticle* MiniAODAnalyzer::GetTruthMatch(std::string name, auto lepton) {
+    if (tauGenMatchMap.end()  !=tauGenMatchMap.find(&lepton)){
+        return tauGenMatchMap[&lepton];
+    }
+    int part_temp_id = 0;
+    if (name == "Tau") {
+        part_temp_id = 15;
+    } else if (name ==  "Muon") {
+        part_temp_id = 13;
+    } else if (name == "Ele") {
+        part_temp_id = 11;
+    }
+    double temp_delta_r = 2;
+    reco::GenParticle gen_match;
+    for (auto part_i: *pruned){
+        int part_temp_truth_id = 0;
+            part_temp_truth_id = TMath::Abs(part_i.pdgId());
+        if (part_temp_id != part_temp_truth_id) continue;
+        double test_delta_r = DeltaR(lepton,part_i);
+        if (test_delta_r < temp_delta_r) {
+            temp_delta_r = test_delta_r;
+            gen_match = part_i;
+        }
+    }
+    tauGenMatchMap[&lepton]=&gen_match;
+    return tauGenMatchMap[&lepton];
+}
+reco::GenParticle* MiniAODAnalyzer::GetTruthMatchAllFlavor(auto lepton) {
+    if (tauGenMatchMapAllFlav.end()  !=tauGenMatchMapAllFlav.find(&lepton)){
+        return tauGenMatchMapAllFlav[&lepton];
+    }
+    double temp_delta_r = 0.5;
+    reco::GenParticle gen_match;
+    for (auto part_i: *pruned){
+        double test_delta_r = DeltaR(lepton,part_i);
+        if (test_delta_r < temp_delta_r && fabs(lepton.pt()-part_i.pt())/part_i.pt()<0.5 && abs(part_i.pdgId())<22 && abs(part_i.pdgId())!=12 && abs(part_i.pdgId())!=14 && abs(part_i.pdgId())!=16) {
+            temp_delta_r = test_delta_r;
+            gen_match = part_i;
+        }
+    }
+    tauGenMatchMapAllFlav[&lepton]=&gen_match;
+    return tauGenMatchMap[&lepton];
+}
+
+/*
+pxl::Particle* specialAna::Get_Truth_match_all_flavor(pxl::Particle* lepton) {
+    if (gen_match_map_all_flav.end()  !=gen_match_map_all_flav.find(lepton)){
+        return gen_match_map_all_flav[lepton];
+    }
+    double temp_delta_r = 0.5;
+    pxl::Particle* gen_match = 0;
+    for (std::vector< pxl::Particle* >::const_iterator part_it = S3ListGen->begin(); part_it != S3ListGen->end(); ++part_it) {
+        pxl::Particle *part_i = *part_it;
+        double test_delta_r = lepton->getVector().deltaR(part_i->getVector());
+        if (test_delta_r < temp_delta_r && fabs(lepton->getPt()-part_i->getPt())/part_i->getPt()<0.5 && abs(part_i->getPdgNumber())<23 && abs(part_i->getPdgNumber())!=12 && abs(part_i->getPdgNumber())!=14 && abs(part_i->getPdgNumber())!=16 && abs(part_i->getPdgNumber())!=22 ) {
+            temp_delta_r = test_delta_r;
+            gen_match = part_i;
+        }
+    }
+    gen_match_map_all_flav[lepton]=gen_match;
+    return gen_match;
+}*/
 
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(MiniAODAnalyzer);
+
+
+
