@@ -24,6 +24,11 @@
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "PhysicsTools/Utilities/interface/LumiReWeighting.h"
 #include "FWCore/Framework/interface/one/EDAnalyzer.h"
+#include "FWCore/Framework/interface/global/EDFilter.h"
+#include "FWCore/Framework/interface/EDProducer.h"
+//#include "PhysicsTools/HepMCCandAlgos/interface/PDFWeightsHelper.h"
+#include "SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h"
+#include "SimDataFormats/GeneratorProducts/interface/LHERunInfoProduct.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Utilities/interface/Exception.h"
 #include "DataFormats/Common/interface/RefToPtr.h"
@@ -52,13 +57,19 @@
 #include "DataFormats/PatCandidates/interface/PackedGenParticle.h"
 #include "DataFormats/Candidate/interface/Candidate.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
+#include "DataFormats/ParticleFlowCandidate/interface/PFCandidateFwd.h"
 #include <vector>
 #include "TTree.h"
 #include "TFile.h"
 #include <string>
 #include "TH1.h"
 #include "TLorentzVector.h"
-
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
+#include <boost/foreach.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 // new includes
 #include <unordered_map>
 #include <unordered_set>
@@ -74,7 +85,8 @@
 // constructor "usesResource("TFileService");"
 // This will improve performance in multithreaded jobs.
 
-class MiniAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
+//class MiniAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
+class MiniAODAnalyzer : public edm::EDAnalyzer {
 public:
   explicit MiniAODAnalyzer(const edm::ParameterSet&);
   ~MiniAODAnalyzer();
@@ -85,10 +97,10 @@ private:
   virtual void beginJob() override;
   virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
   virtual void endJob() override;
+  virtual void beginRun( edm::Run const &iRun, edm::EventSetup const &iSetup ) override;
   bool PassTauID(const pat::Tau &tau);
   bool PassTauID_NonIsolated(const pat::Tau &tau);
   bool PassTauAcceptance(TLorentzVector tau);
-
   bool FindTauIDEfficiency(const edm::Event&,TLorentzVector gen_p4);
   bool PassFinalCuts(int nGoodTau_, double met_val_, double met_phi_, double tau_pt_, double tau_phi_);
   bool PassFinalCuts(TLorentzVector part1, const pat::MET part2, pat::MET::METUncertainty metUncert);
@@ -96,10 +108,12 @@ private:
   bool PassFinalCuts(int nGoodTau_,TLorentzVector part1, const pat::MET part2);
 
 
+  std::vector<int> pdf_indices;
+  std::vector<double> inpdfweights;
 
   //new additions
   virtual void Create_Trees();
-  virtual void Fill_Tree();
+  virtual void Fill_Tree(TLorentzVector sel_lepton, const pat::MET sel_met);
   virtual void Fill_QCD_Tree(bool iso);
 
   std::unordered_map< std::string,float > mLeptonTree;
@@ -118,6 +132,8 @@ private:
 
   // ----------member data ---------------------------
   edm::LumiReWeighting LumiWeights_;
+  edm::LumiReWeighting LumiWeights_UP_;
+  edm::LumiReWeighting LumiWeights_DOWN_;
   edm::EDGetTokenT<reco::VertexCollection> vtxToken_;
   edm::EDGetTokenT<pat::TauCollection> tauToken_;
   edm::EDGetTokenT<pat::MuonCollection> muonToken_;
@@ -132,12 +148,30 @@ private:
   edm::EDGetTokenT<edm::View<pat::PackedGenParticle> > packedGenToken_;
   edm::EDGetTokenT<GenEventInfoProduct> genEventInfoProductTagToken_;
   edm::EDGetTokenT<std::vector<PileupSummaryInfo> > puCollection_;
+  edm::EDGetTokenT<bool> BadChCandFilterToken_;
+  edm::EDGetTokenT<bool> BadPFMuonFilterToken_;
+  edm::EDGetTokenT<LHEEventProduct> LHEEventToken_;
+  edm::EDGetTokenT<LHERunInfoProduct> LHERunInfoToken_;
+
 
   //------//
   TFile*  rootFile_;
   std::string outputFile_; // output file
+  std::string pdfName_;
+  //  std::string lheString = "source" ; //  "externalLHEProducer" ;
+  std::string lheString =  "externalLHEProducer" ;
   std::string pileupMC_ ;
   std::string pileupData_ ;
+  std::string pileupData_UP_ ;
+  std::string pileupData_DOWN_ ;
+  std::string pdfid_1;
+  std::string pdfid_2;
+  std::string tag_;
+
+  bool RunOnData;
+  bool doPDFuncertainty;
+  std::string generatorName_;
+  int debugLevel;
   TTree* mytree;
   TH1I *h1_EventCount;
   TH1I *h1_EventCount2;
@@ -176,6 +210,11 @@ private:
   TH1D *h1_MT_Stage1_metUncert_UnclusteredEnDown;
   TH1D *h1_MT_Stage1_TauScaleUp;
   TH1D *h1_MT_Stage1_TauScaleDown;
+  TH1D *h1_MT_Stage1_pileupUncertUp;
+  TH1D *h1_MT_Stage1_pileupUncertDown;
+  TH1D *h1_MT_Stage1_pdfUncertUp;
+  TH1D *h1_MT_Stage1_pdfUncertDown;
+
 
   ///crosscheck
   TH1D *h1_MT_Stage1_metUncert_JetEnUp_new;
@@ -213,12 +252,21 @@ private:
   ///crosscheck end
 
 
+>>>>>>> merged addMTFunction into FillTrees
   TH1D *h1_recoVtx_NoPUWt;
   TH1D *h1_recoVtx_WithPUWt;
-
-  bool RunOnData;
+  //
+  //-- These 100 histograms needed for PDF uncertainty --//
+  TH1F *h1_MT_Stage1_pdfWt[100];
+  char *histname_MT = new char[60];
+  int nbinMT=2000;
+  int xlowMT=0;
+  int xupMT=2000;
+  //
   int Run;
   double final_weight=1;
+  double final_weight_PUweight_UP=1;
+  double final_weight_PUweight_DOWN=1;
   int Event;
   double dphi_tau_met;
   //  int num_PU_vertices;
@@ -243,18 +291,31 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
   packedGenToken_(consumes<edm::View<pat::PackedGenParticle> >(iConfig.getParameter<edm::InputTag>("packed"))),
   genEventInfoProductTagToken_(consumes<GenEventInfoProduct>(iConfig.getParameter<edm::InputTag>("genEventInfoProductMiniAOD"))),
   puCollection_(consumes<std::vector<PileupSummaryInfo> >(iConfig.getParameter<edm::InputTag>("pileupCollection"))),
+  BadChCandFilterToken_(consumes<bool>(iConfig.getParameter<edm::InputTag>("BadChargedCandidateFilter"))),
+  BadPFMuonFilterToken_(consumes<bool>(iConfig.getParameter<edm::InputTag>("BadPFMuonFilter"))),
+  LHEEventToken_( consumes<LHEEventProduct>( iConfig.getParameter<edm::InputTag>( "LHEEventTag" ))),
+  //  LHERunInfoToken_( consumes<LHERunInfoProduct,edm::InRun> ( iConfig.getParameter<edm::InputTag>( "LHEEventTag" ))),
+  LHERunInfoToken_( consumes<LHERunInfoProduct,edm::InRun> (edm::InputTag("externalLHEProducer"))),
+  //  LHERunInfoToken_( consumes<LHERunInfoProduct,edm::InRun> (edm::InputTag("source"))),
   outputFile_(iConfig.getParameter<std::string>("outputFile")),
-  RunOnData(iConfig.getParameter<bool>("RunOnData_"))
+  pdfName_(iConfig.getParameter<std::string>("pdfName")),
+  tag_(iConfig.getUntrackedParameter<std::string>( "tag", "initrwgt" )),
+  RunOnData(iConfig.getParameter<bool>("RunOnData_")),
+  doPDFuncertainty(iConfig.getParameter<bool>("doPDFuncertainty_")),
+  generatorName_(iConfig.getParameter<std::string>("generatorName")),
+  debugLevel(iConfig.getParameter<int>("debugLevel_"))
 {
    //now do what ever initialization is needed
   //usesResource("TFileService");
   pileupMC_ = iConfig.getParameter<std::string>("PileupMCFile") ;
   pileupData_ = iConfig.getParameter<std::string>("PileupDataFile") ;
+  pileupData_UP_ = iConfig.getParameter<std::string>("PileupDataFile_UP") ;
+  pileupData_DOWN_ = iConfig.getParameter<std::string>("PileupDataFile_DOWN") ;
   rootFile_   = TFile::Open(outputFile_.c_str(),"RECREATE"); // open output file to store histograms
   TFileDirectory histoDir = fs->mkdir("histoDir");
   TFileDirectory crossDir = fs->mkdir("crossDir");
 
-
+  /////  if (isPowheg) lheString = "source" ;
 /*
  * this is a bit messy atm, if we are fine with a histoDir
  * remove this part
@@ -311,28 +372,34 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
   h1_TauPt_GenMatchedTau_RegC_Stage1 = histoDir.make<TH1D>("tauPt_GenMatchedTau_RegC_Stage1", "TauPt_GenMatchedTau_RegC_Stage1", 100, 0, 1000);
   h1_TauPt_RegD_Stage1 = histoDir.make<TH1D>("tauPt_RegD_Stage1", "TauPt_RegD_Stage1", 100, 0, 1000);
   h1_TauPt_GenMatchedTau_RegD_Stage1 = histoDir.make<TH1D>("tauPt_GenMatchedTau_RegD_Stage1", "TauPt_GenMatchedTau_RegD_Stage1", 100, 0, 1000);
-  h1_MT_Stage1 = histoDir.make<TH1D>("mT_Stage1", "MT_Stage1", 2000, 0, 2000);
-  h1_MT_RegA_Stage1 = histoDir.make<TH1D>("mT_RegA_Stage1", "MT_RegA_Stage1", 2000, 0, 2000);
-  h1_MT_RegC_Stage1 = histoDir.make<TH1D>("mT_RegC_Stage1", "MT_RegC_Stage1", 2000, 0, 2000);
-  h1_MT_GenMatchedTau_RegC_Stage1 = histoDir.make<TH1D>("mT_GenMatchedTau_RegC_Stage1", "MT_GenMatchedTau_RegC_Stage1", 2000, 0, 2000);
-  h1_MT_RegD_Stage1 = histoDir.make<TH1D>("mT_RegD_Stage1", "MT_RegD_Stage1", 2000, 0, 2000);
-  h1_MT_GenMatchedTau_RegD_Stage1 = histoDir.make<TH1D>("mT_GenMatchedTau_RegD_Stage1", "MT_GenMatchedTau_RegD_Stage1", 2000, 0, 2000);
-  h1_MT_Stage1_metUncert_JetEnUp = histoDir.make<TH1D>("mT_Stage1_metUncert_JetEnUp", "MT_Stage1_metUncert_JetEnUp", 2000, 0, 2000);
-  h1_MT_Stage1_metUncert_JetEnDown = histoDir.make<TH1D>("mT_Stage1_metUncert_JetEnDown", "MT_Stage1_metUncert_JetEnDown", 2000, 0, 2000);
-  h1_MT_Stage1_metUncert_JetResUp = histoDir.make<TH1D>("mT_Stage1_metUncert_JetResUp", "MT_Stage1_metUncert_JetResUp", 2000, 0, 2000);
-  h1_MT_Stage1_metUncert_JetResDown = histoDir.make<TH1D>("mT_Stage1_metUncert_JetResDown", "MT_Stage1_metUncert_JetResDown", 2000, 0, 2000);
-  h1_MT_Stage1_metUncert_MuonEnUp = histoDir.make<TH1D>("mT_Stage1_metUncert_MuonEnUp", "MT_Stage1_metUncert_MuonEnUp", 2000, 0, 2000);
-  h1_MT_Stage1_metUncert_MuonEnDown = histoDir.make<TH1D>("mT_Stage1_metUncert_MuonEnDown", "MT_Stage1_metUncert_MuonEnDown", 2000, 0, 2000);
-  h1_MT_Stage1_metUncert_ElectronEnUp = histoDir.make<TH1D>("mT_Stage1_metUncert_ElectronEnUp", "MT_Stage1_metUncert_ElectronEnUp", 2000, 0, 2000);
-  h1_MT_Stage1_metUncert_ElectronEnDown = histoDir.make<TH1D>("mT_Stage1_metUncert_ElectronEnDown", "MT_Stage1_metUncert_ElectronEnDown", 2000, 0, 2000);
-  h1_MT_Stage1_metUncert_TauEnUp = histoDir.make<TH1D>("mT_Stage1_metUncert_TauEnUp", "MT_Stage1_metUncert_TauEnUp", 2000, 0, 2000);
-  h1_MT_Stage1_metUncert_TauEnDown = histoDir.make<TH1D>("mT_Stage1_metUncert_TauEnDown", "MT_Stage1_metUncert_TauEnDown", 2000, 0, 2000);
-  h1_MT_Stage1_metUncert_PhotonEnUp = histoDir.make<TH1D>("mT_Stage1_metUncert_PhotonEnUp", "MT_Stage1_metUncert_PhotonEnUp", 2000, 0, 2000);
-  h1_MT_Stage1_metUncert_PhotonEnDown = histoDir.make<TH1D>("mT_Stage1_metUncert_PhotonEnDown", "MT_Stage1_metUncert_PhotonEnDown", 2000, 0, 2000);
-  h1_MT_Stage1_metUncert_UnclusteredEnUp = histoDir.make<TH1D>("mT_Stage1_metUncert_UnclusteredEnUp", "MT_Stage1_metUncert_UnclusteredEnUp", 2000, 0, 2000);
-  h1_MT_Stage1_metUncert_UnclusteredEnDown = histoDir.make<TH1D>("mT_Stage1_metUncert_UnclusteredEnDown", "MT_Stage1_metUncert_UnclusteredEnDown", 2000, 0, 2000);
-  h1_MT_Stage1_TauScaleUp = histoDir.make<TH1D>("mT_Stage1_TauScaleUp", "MT_Stage1_TauScaleUp", 2000, 0, 2000);
-  h1_MT_Stage1_TauScaleDown = histoDir.make<TH1D>("mT_Stage1_TauScaleDown", "MT_Stage1_TauScaleDown", 2000, 0, 2000);
+  h1_MT_Stage1 = histoDir.make<TH1D>("mT_Stage1", "MT_Stage1", nbinMT, xlowMT, xupMT);
+  h1_MT_RegA_Stage1 = histoDir.make<TH1D>("mT_RegA_Stage1", "MT_RegA_Stage1", nbinMT, xlowMT, xupMT);
+  h1_MT_RegC_Stage1 = histoDir.make<TH1D>("mT_RegC_Stage1", "MT_RegC_Stage1", nbinMT, xlowMT, xupMT);
+  h1_MT_GenMatchedTau_RegC_Stage1 = histoDir.make<TH1D>("mT_GenMatchedTau_RegC_Stage1", "MT_GenMatchedTau_RegC_Stage1", nbinMT, xlowMT, xupMT);
+  h1_MT_RegD_Stage1 = histoDir.make<TH1D>("mT_RegD_Stage1", "MT_RegD_Stage1", nbinMT, xlowMT, xupMT);
+  h1_MT_GenMatchedTau_RegD_Stage1 = histoDir.make<TH1D>("mT_GenMatchedTau_RegD_Stage1", "MT_GenMatchedTau_RegD_Stage1", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_metUncert_JetEnUp = histoDir.make<TH1D>("mT_Stage1_metUncert_JetEnUp", "MT_Stage1_metUncert_JetEnUp", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_metUncert_JetEnDown = histoDir.make<TH1D>("mT_Stage1_metUncert_JetEnDown", "MT_Stage1_metUncert_JetEnDown", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_metUncert_JetResUp = histoDir.make<TH1D>("mT_Stage1_metUncert_JetResUp", "MT_Stage1_metUncert_JetResUp", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_metUncert_JetResDown = histoDir.make<TH1D>("mT_Stage1_metUncert_JetResDown", "MT_Stage1_metUncert_JetResDown", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_metUncert_MuonEnUp = histoDir.make<TH1D>("mT_Stage1_metUncert_MuonEnUp", "MT_Stage1_metUncert_MuonEnUp", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_metUncert_MuonEnDown = histoDir.make<TH1D>("mT_Stage1_metUncert_MuonEnDown", "MT_Stage1_metUncert_MuonEnDown", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_metUncert_ElectronEnUp = histoDir.make<TH1D>("mT_Stage1_metUncert_ElectronEnUp", "MT_Stage1_metUncert_ElectronEnUp", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_metUncert_ElectronEnDown = histoDir.make<TH1D>("mT_Stage1_metUncert_ElectronEnDown", "MT_Stage1_metUncert_ElectronEnDown", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_metUncert_TauEnUp = histoDir.make<TH1D>("mT_Stage1_metUncert_TauEnUp", "MT_Stage1_metUncert_TauEnUp", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_metUncert_TauEnDown = histoDir.make<TH1D>("mT_Stage1_metUncert_TauEnDown", "MT_Stage1_metUncert_TauEnDown", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_metUncert_PhotonEnUp = histoDir.make<TH1D>("mT_Stage1_metUncert_PhotonEnUp", "MT_Stage1_metUncert_PhotonEnUp", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_metUncert_PhotonEnDown = histoDir.make<TH1D>("mT_Stage1_metUncert_PhotonEnDown", "MT_Stage1_metUncert_PhotonEnDown", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_metUncert_UnclusteredEnUp = histoDir.make<TH1D>("mT_Stage1_metUncert_UnclusteredEnUp", "MT_Stage1_metUncert_UnclusteredEnUp", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_metUncert_UnclusteredEnDown = histoDir.make<TH1D>("mT_Stage1_metUncert_UnclusteredEnDown", "MT_Stage1_metUncert_UnclusteredEnDown", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_TauScaleUp = histoDir.make<TH1D>("mT_Stage1_TauScaleUp", "MT_Stage1_TauScaleUp", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_TauScaleDown = histoDir.make<TH1D>("mT_Stage1_TauScaleDown", "MT_Stage1_TauScaleDown", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_pileupUncertUp = histoDir.make<TH1D>("mT_Stage1_pileupUncertUp", "MT_Stage1_pileupUncertUp", nbinMT, xlowMT, xupMT);
+  h1_MT_Stage1_pileupUncertDown =histoDir.make<TH1D>("mT_Stage1_pileupUncertDown", "MT_Stage1_pileupUncertDown", nbinMT, xlowMT, xupMT);
+  if ( doPDFuncertainty ) {
+    h1_MT_Stage1_pdfUncertUp = histoDir.make<TH1D>("mT_Stage1_pdfUncertUp", "MT_Stage1_pdfUncertUp", nbinMT, xlowMT, xupMT);
+    h1_MT_Stage1_pdfUncertDown =histoDir.make<TH1D>("mT_Stage1_pdfUncertDown", "MT_Stage1_pdfUncertDown", nbinMT, xlowMT, xupMT);
+  }
 
   ///crosscheck
   h1_MT_Stage1_metUncert_JetEnUp_new = crossDir.make<TH1D>("mT_Stage1_metUncert_JetEnUp_new", "MT_Stage1_metUncert_JetEnUp_new", 2000, 0, 2000);
@@ -375,8 +442,23 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
   h1_recoVtx_NoPUWt = histoDir.make<TH1D>("recoVtx_NoPUWt", "RecoVtx_NoPUWt", 100, 0, 100);
   h1_recoVtx_WithPUWt = histoDir.make<TH1D>("recoVtx_WithPUWt", "RecoVtx_WithPUWt", 100, 0, 100);
 
+  //
+  if ( doPDFuncertainty ) {
+    //  std::cout << "Will initialize 100 MT histograms for different pdf weights " << std::endl;
+    for (int i=0; i<100; i++) {
+      //std::cout << "Initialize hist " << i << std::endl;
+      sprintf(histname_MT,"mT_Stage1_pdfWt_%d",i);
+      h1_MT_Stage1_pdfWt[i] = new TH1F(histname_MT,"",nbinMT, xlowMT, xupMT);
+    }
+  }
+  //
+
+  //
+
   if (!RunOnData) {
     LumiWeights_ = edm::LumiReWeighting(pileupMC_, pileupData_, "pileup", "pileup");
+    LumiWeights_UP_ = edm::LumiReWeighting(pileupMC_, pileupData_UP_, "pileup", "pileup");
+    LumiWeights_DOWN_ = edm::LumiReWeighting(pileupMC_, pileupData_DOWN_, "pileup", "pileup");
   }
 }
 
@@ -388,15 +470,124 @@ MiniAODAnalyzer::~MiniAODAnalyzer()
    // (e.g. close files, deallocate resources etc.)
   delete rootFile_;
 
+  if ( doPDFuncertainty ) {
+    for (unsigned int i=0; i<100; i++) {
+      delete h1_MT_Stage1_pdfWt[i];
+    }
+  }
 }
 
 //
 // member functions
 //
 
+void MiniAODAnalyzer::beginRun( edm::Run const &iRun, edm::EventSetup const &iSetup ) {
+  //std::cout << "Inside beginRun()" << std::endl;
+  pdf_indices.clear();
+
+  if (!RunOnData ) {
+    if ( doPDFuncertainty) {
+
+      //std::cout << "RunOnData=" << RunOnData << std::endl;
+      edm::Handle<LHERunInfoProduct> run;
+      typedef std::vector<LHERunInfoProduct::Header>::const_iterator headers_const_iterator;
+      iRun.getByLabel( lheString , run );
+      if ( run.isValid()) {
+    std::cout << "Take pdf weights from CMSSW" << std::endl;
+    LHERunInfoProduct myLHERunInfoProduct = *(run.product());
+        std::vector<std::string> weight_lines;
+    for (headers_const_iterator iter=myLHERunInfoProduct.headers_begin(); iter!=myLHERunInfoProduct.headers_end(); iter++){
+      // if (debugLevel<1) std::cout << "TAG " << iter->tag() << std::endl;
+      std::vector<std::string> lines = iter->lines();
+      if( ( iter->tag() ).compare( tag_ ) == 0 ) {
+        weight_lines = iter->lines();
+        //  std::cout << iter->lines() << std::endl;
+      }
+      if (debugLevel>3) {
+        for (unsigned int iLine = 0; iLine<lines.size(); iLine++) {
+          std::cout   << "LINE " << lines.at(iLine);
+        }
+      }
+    }
+    int pdfidx = 0;
+    pdfidx = run->heprup().PDFSUP.first;
+    if (generatorName_=="powheg" && pdfidx==-1) pdfidx=260000;
+    //std::cout << "This sample was generated with the following PDFs : "   << pdfidx <<   std::endl;
+    pdfid_1 = boost::lexical_cast<std::string>(pdfidx + 1);
+    pdfid_2 = boost::lexical_cast<std::string>(pdfidx + 100);
+    //      std::cout << "PDF min and max id for MC replicas: " << pdfid_1 << "   " << pdfid_2 << std::endl;
+    //std::cout << "size=" << weight_lines.size() << std::endl;
+    std::stringstream ss;
+    std::copy(weight_lines.begin(), weight_lines.end(),std::ostream_iterator<std::string>(ss,""));
+    //cout << ss.str()<<endl;
+    boost::property_tree::ptree pt;
+    read_xml( ss , pt);
+
+    // --- Name of the weightgroup
+    //  string scalevar = "scale_variation";
+    std::string pdfvar="";
+    if (generatorName_=="powheg") {
+      pdfvar = "PDF_variation";
+    }
+    else if (generatorName_=="madgraphMLM") {
+      pdfvar = pdfName_;
+    }
+
+    if( (generatorName_=="madgraphMLM") && (pdfidx==263000) && (pdfvar != "NNPDF30_lo_as_0130.LHgrid") )
+      throw cms::Exception("WrongPDFname")
+        << "Wrong pdf name provided. ID=" << pdfidx << " NAME=" << pdfvar   ;
+
+    if( (generatorName_=="madgraphMLM") && (pdfidx != 263000) && (pdfvar == "NNPDF30_lo_as_0130.LHgrid") )
+      throw cms::Exception("WrongPDFname")
+        << "Wrong pdf name provided. ID=" << pdfidx << " NAME=" << pdfvar   ;
+    //      std::cout << "generatorName_=" << generatorName_ << " pdfvar=" << pdfvar << std::endl;
+
+    BOOST_FOREACH( boost::property_tree::ptree::value_type const& v, pt.get_child("") ) {
+      //std::cout << "v.first=" << v.first  << std::endl;
+
+      if (v.first == "weightgroup"){
+        boost::property_tree::ptree subtree = (boost::property_tree::ptree) v.second ;
+
+        boost::optional<std::string> weightgroupname1 = v.second.get_optional<std::string>("<xmlattr>.name");
+        boost::optional<std::string> weightgroupname2 = v.second.get_optional<std::string>("<xmlattr>.type");
+        //std::cout << "weightgroupname1=" << weightgroupname1 << " weightgroupname2=" << weightgroupname2 << std::endl;
+        if ( (weightgroupname1 && weightgroupname1.get() == pdfvar)  || (weightgroupname2 && weightgroupname2.get() == pdfvar)) {
+          BOOST_FOREACH(boost::property_tree::ptree::value_type &vs,subtree) {
+        //    std::cout << "vs.first=" << vs.first << " vs.second="  << vs.second << std::endl;
+        if (vs.first == "weight") {
+          //std::cout << vs.first <<  "   " << vs.second.get<std::string>("<xmlattr>.id")  << "  " << vs.second.data()<< std::endl;
+          std::string strwid  = vs.second.get<std::string>("<xmlattr>.id");
+          std::string strw    = vs.second.data();
+          int id = stoi(strwid);
+          std::vector<std::string> strs;
+          if (generatorName_=="madgraphMLM") boost::split(strs, strw, boost::is_any_of(" "));
+          if (generatorName_=="powheg") boost::split(strs, strw, boost::is_any_of("="));
+          int pdf_wt_index  = 999;
+          if (generatorName_=="powheg") {
+            pdf_wt_index = stoi(strs.back());
+          }
+          else if (generatorName_=="madgraphMLM") {
+            pdf_wt_index = pdfidx+ (stoi(strs.back())) +1 ;
+          }
+          //        std::cout << "id=" << id  << "  pdf_wt_index = " << pdf_wt_index << std::endl;
+          if ( (pdf_wt_index >= stoi(pdfid_1) ) && (pdf_wt_index <= stoi(pdfid_2)) ){
+            pdf_indices.push_back( id );
+          }
+        }
+          }
+        }
+      }
+    }
+      }
+      else {
+    if (debugLevel>3)   std::cout << "PDF weights not saved in CMSSW. Do post-facto reweighting" << std::endl;
+      }
+    }
+  }
+}
+
 // ------------ method called for each event  ------------
-void
-MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   using namespace edm;
   using namespace std;
@@ -411,7 +602,7 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
   //------//
   Run   = iEvent.id().run();
   Event = iEvent.id().event();
-  //std::cout << "\n --EVENT-- " << Event << std::endl;
+  ////std::cout << "\n --EVENT-- " << Event << std::endl;
 
   //-- probValue --//
   //-- https://github.com/cms-sw/cmssw/blob/CMSSW_8_1_X/SimGeneral/MixingModule/python/mix_2016_25ns_SpringMC_PUScenarioV1_PoissonOOTPU_cfi.py --//
@@ -420,6 +611,8 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
   //----------//
   int MC_TrueNumInteractions=-1;
   double Lumi_Wt=1;
+  double Lumi_Wt_UP=1;
+  double Lumi_Wt_DOWN=1;
 
   if (!RunOnData) {
     Handle<std::vector< PileupSummaryInfo > >  PupInfo;
@@ -438,6 +631,8 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
     MC_TrueNumInteractions = Tnpv;
 
     Lumi_Wt = LumiWeights_.weight( MC_TrueNumInteractions );
+    Lumi_Wt_UP = LumiWeights_UP_.weight( MC_TrueNumInteractions );
+    Lumi_Wt_DOWN = LumiWeights_DOWN_.weight( MC_TrueNumInteractions );
   }
   //  std::cout << "RunOnData=" << RunOnData << " MC_TrueNumInteractions=" << MC_TrueNumInteractions << " Lumi_Wt=" << Lumi_Wt << std::endl;
 
@@ -450,14 +645,53 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
   }
   //  std::cout << "RunOnData=" << RunOnData << " mc_event_weight=" << mc_event_weight << std::endl;
 
+  if ( doPDFuncertainty) {
+    ///--PDF weight--///
+    edm::Handle<LHEEventProduct> EvtHandle ;
+    if  ( !(RunOnData) ) {
+      iEvent.getByToken( LHEEventToken_ , EvtHandle ) ;
+      if  ( (EvtHandle.isValid()) ) {
+    std::cout << "Take pdf weights from CMSSW" << std::endl;
+    inpdfweights.clear();
+
+    //  if  ( !(RunOnData) && (EvtHandle.isValid()) ) {
+    // std::cout << "\n\n wt for this evt :" <<  EvtHandle->originalXWGTUP() << " vect_size=" << EvtHandle->weights().size()  << std::endl ; // PDF weight of this event !
+    //  std::string whichWeightId = "20";
+    for (unsigned int i=0; i<EvtHandle->weights().size(); i++) {
+      int id_i = stoi( EvtHandle->weights()[i].id );
+      for( unsigned int j = 0; j<pdf_indices.size(); j++ ) {
+        int id_j = pdf_indices[j];
+        if( id_i == id_j ){
+          float pdf_weight = (EvtHandle->weights()[i].wgt)/(EvtHandle->originalXWGTUP());
+          //   std::cout << "pdf_weight=" << pdf_weight  << std::endl;
+          inpdfweights.push_back( pdf_weight );
+        }
+      }
+
+      // for (unsigned int i=0; i<101; i++) {
+      //  std::cout << "id=" << EvtHandle->weights()[i].id  <<  " wt=" << EvtHandle->weights()[i].wgt/EvtHandle->originalXWGTUP() << std::endl;
+      //if (EvtHandle->weights()[i].id == whichWeightId) std::cout << "id="  << EvtHandle->weights()[i].id << " wt=" << EvtHandle->weights()[i].wgt  << std::endl;
+      // if (EvtHandle->weights()[i].id == "YYY") theWeight *= EvtHandle->weights()[i].wgt/EvtHandle->originalXWGTUP();
+    }
+      }
+      else {
+    if (debugLevel) std::cout << "PDF weights not saved in CMSSW. Do post-facto reweighting" << std::endl;
+      }
+    }
+  }
   //----------------//
   //--Final Weight--//
   //----------------//
   if (!RunOnData) {
-    final_weight=Lumi_Wt*mc_event_weight;
+    final_weight               =Lumi_Wt*mc_event_weight;
+    final_weight_PUweight_UP   =Lumi_Wt_UP*mc_event_weight;
+    final_weight_PUweight_DOWN =Lumi_Wt_DOWN*mc_event_weight;
+
   }
   else {
     final_weight=1;
+    final_weight_PUweight_UP=1;
+    final_weight_PUweight_DOWN=1;
   }
   //  std::cout << "RunOnData=" << RunOnData << " final_weight=" << final_weight << std::endl;
 
@@ -470,7 +704,7 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
   if (!RunOnData) {
     //--GenParticles--//
     Handle<edm::View<reco::GenParticle> > pruned;
-    std::cout << pruned <<
+    //std::cout << pruned <<
     iEvent.getByToken(prunedGenToken_,pruned);
 
     Handle<edm::View<pat::PackedGenParticle> > packed;
@@ -528,6 +762,7 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
    iEvent.getByToken(triggerBits_MET_, triggerBits_MET);
    const edm::TriggerNames &names_MET = iEvent.triggerNames(*triggerBits_MET);
 
+   bool passAllMETFilters=0;
    bool passHBHENoiseFilter=0;
    bool passHBHENoiseIsoFilter=0;
    bool passEcalDeadCellTriggerPrimitiveFilter=0;
@@ -571,14 +806,31 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
    }
    */
    //   if (!RunOnData) passTauTrig=1;
-   //std::cout << "RunOnData=" << RunOnData <<  " ## passHBHENoiseFilter=" << passHBHENoiseFilter
-   // <<  " ## passHBHENoiseIsoFilter=" << passHBHENoiseIsoFilter
+   //  std::cout << "RunOnData=" << RunOnData <<  " ## passHBHENoiseFilter=" << passHBHENoiseFilter
+   //        <<  " ## passHBHENoiseIsoFilter=" << passHBHENoiseIsoFilter
    //        << " ## passEcalDeadCellTriggerPrimitiveFilter=" << passEcalDeadCellTriggerPrimitiveFilter
    //        << " ## passgoodVertices=" << passgoodVertices
    //        << " ## passeeBadScFilter=" << passeeBadScFilter
    //        << " ## passglobalTightHalo2016Filter=" << passglobalTightHalo2016Filter << std::endl;
 
 
+   //---MET FILTERS THAT ARE UNAVAILABLE IN MINIAOD AS FLAG---//
+   edm::Handle<bool> ifilterbadChCand;
+   iEvent.getByToken(BadChCandFilterToken_, ifilterbadChCand);
+   bool  filterbadChCandidate = *ifilterbadChCand;
+   //   if (filterbadChCandidate<1)   std::cout << "filterbadChCandidate=" << filterbadChCandidate << std::endl;
+
+   edm::Handle<bool> ifilterbadPFMuon;
+   iEvent.getByToken(BadPFMuonFilterToken_, ifilterbadPFMuon);
+   bool filterbadPFMuon = *ifilterbadPFMuon;
+   //  if (filterbadPFMuon<1)   std::cout << "filterbadPFMuon=" << filterbadPFMuon << std::endl;
+
+   //Pass All MET Filters? //
+   passAllMETFilters =  passHBHENoiseFilter * passHBHENoiseIsoFilter * passEcalDeadCellTriggerPrimitiveFilter * passgoodVertices * passeeBadScFilter * passglobalTightHalo2016Filter * filterbadChCandidate * filterbadPFMuon ;
+
+   //   std::cout << "passAllMETFilters=" << passAllMETFilters << std::endl;
+
+   ///-- VERTEX --///
    edm::Handle<reco::VertexCollection> vertices;
    iEvent.getByToken(vtxToken_, vertices);
    if (vertices->empty()) return; // skip the event if no PV found
@@ -772,7 +1024,7 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
    //---Selection---//
    //---------------//
 
-   if (passTauTrig && passHBHENoiseFilter && passHBHENoiseIsoFilter && passEcalDeadCellTriggerPrimitiveFilter && passgoodVertices && passeeBadScFilter && passglobalTightHalo2016Filter) {
+   if (passTauTrig && passAllMETFilters ) {
      if ( (nvtx>0) && (nTightMu==0) && (nLooseEle==0) ) {
        //** Stage1 = final stage (all cuts applied) **//
        if ( (PassFinalCuts(nGoodTau, met_val,met_phi,tau_pt[0],tau_phi[0]) == true) ) {
@@ -781,20 +1033,28 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
      h1_TauPt_Stage1->Fill(tau_pt[0],final_weight);
      //std::cout << "*Standard* dphi_tau_met=" << dphi_tau_met << std::endl;
      double MT=  sqrt(2*tau_pt[0]*met_val*(1- cos(dphi_tau_met)));
-     //double MT_new= calcMT(tau_NoShift,met);
-     //if (MT-MT_new != 0){
-         //std::cout << "there seems to be something wrong, calcMT and MT is different" << std::endl;
-     //}
      h1_MT_Stage1->Fill(MT,final_weight);
+     //--PU Systematics--//
+     h1_MT_Stage1_pileupUncertUp->Fill(MT,final_weight_PUweight_UP);
+     h1_MT_Stage1_pileupUncertDown->Fill(MT,final_weight_PUweight_DOWN);
+
+     if ( doPDFuncertainty) {
+       //--PDF Systematics--//
+       // std::cout << "Evt selected. Size of inpdfweights = " << inpdfweights.size() << std::endl;
+       int imem=0;
+       for (std::vector<double>::iterator it = inpdfweights.begin() ; it != inpdfweights.end(); ++it) {
+         //std::cout << "weight = " << *it << std::endl;
+         double final_wt_with_pdf = (*it)*final_weight;
+         h1_MT_Stage1_pdfWt[imem]->Fill(MT,final_wt_with_pdf);
+       //      std::cout << "final_wt_with_pdf " << final_wt_with_pdf << std::endl ;
+         imem++;
+       }
+     }
        }
        //--Systematics--//
        if ( (PassFinalCuts(nGoodTau, met_val_JetEnUp,met_phi_JetEnUp,tau_pt[0],tau_phi[0] ) == true) ) {
      //std::cout << "*metUncert_JetEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-     double MT_metUncert_JetEnUp = sqrt(2*tau_pt[0]*met_val_JetEnUp*(1- cos(dphi_tau_met)));  // always use the same dphi? or shifted dphi?
-     //double MT_metUncert_JetEnUp_test = calcMT(tau_NoShift,met,pat::MET::JetEnUp);
-     //if (MT_metUncert_JetEnUp-MT_metUncert_JetEnUp_test != 0){
-         //std::cout << MT_metUncert_JetEnUp << " " << MT_metUncert_JetEnUp_test << " " << MT_metUncert_JetEnUp-MT_metUncert_JetEnUp_test << std::endl;
-     //}
+     double MT_metUncert_JetEnUp = sqrt(2*tau_pt[0]*met_val_JetEnUp*(1- cos(dphi_tau_met)));
      h1_MT_Stage1_metUncert_JetEnUp->Fill(MT_metUncert_JetEnUp,final_weight);
        }
        ///
@@ -830,45 +1090,45 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
        ///
        if ( (PassFinalCuts(nGoodTau, met_val_ElectronEnUp,met_phi_ElectronEnUp,tau_pt[0],tau_phi[0]) == true) ) {
      //std::cout << "*metUncert_ElectronEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-    double MT_metUncert_ElectronEnUp = sqrt(2*tau_pt[0]*met_val_ElectronEnUp*(1- cos(dphi_tau_met)));
-    h1_MT_Stage1_metUncert_ElectronEnUp->Fill(MT_metUncert_ElectronEnUp,final_weight);
-      }
-      ///
+     double MT_metUncert_ElectronEnUp = sqrt(2*tau_pt[0]*met_val_ElectronEnUp*(1- cos(dphi_tau_met)));
+     h1_MT_Stage1_metUncert_ElectronEnUp->Fill(MT_metUncert_ElectronEnUp,final_weight);
+       }
+       ///
        if ( (PassFinalCuts(nGoodTau, met_val_ElectronEnDown,met_phi_ElectronEnDown,tau_pt[0],tau_phi[0]) == true) ) {
      //std::cout << "*metUncert_ElectronEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
      double MT_metUncert_ElectronEnDown = sqrt(2*tau_pt[0]*met_val_ElectronEnDown*(1- cos(dphi_tau_met)));
      h1_MT_Stage1_metUncert_ElectronEnDown->Fill(MT_metUncert_ElectronEnDown,final_weight);
-      }
-      ///
+       }
+       ///
        if ( (PassFinalCuts(nGoodTau, met_val_TauEnUp,met_phi_TauEnUp,tau_pt[0],tau_phi[0]) == true) ) {
      //std::cout << "*metUncert_TauEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-    double MT_metUncert_TauEnUp = sqrt(2*tau_pt[0]*met_val_TauEnUp*(1- cos(dphi_tau_met)));
-    h1_MT_Stage1_metUncert_TauEnUp->Fill(MT_metUncert_TauEnUp,final_weight);
-      }
-      ///
+     double MT_metUncert_TauEnUp = sqrt(2*tau_pt[0]*met_val_TauEnUp*(1- cos(dphi_tau_met)));
+     h1_MT_Stage1_metUncert_TauEnUp->Fill(MT_metUncert_TauEnUp,final_weight);
+       }
+       ///
        if ( (PassFinalCuts(nGoodTau, met_val_TauEnDown,met_phi_TauEnDown,tau_pt[0],tau_phi[0]) == true) ) {
      //std::cout << "*metUncert_TauEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-    double MT_metUncert_TauEnDown = sqrt(2*tau_pt[0]*met_val_TauEnDown*(1- cos(dphi_tau_met)));
-    h1_MT_Stage1_metUncert_TauEnDown->Fill(MT_metUncert_TauEnDown,final_weight);
-      }
-      ///
+     double MT_metUncert_TauEnDown = sqrt(2*tau_pt[0]*met_val_TauEnDown*(1- cos(dphi_tau_met)));
+     h1_MT_Stage1_metUncert_TauEnDown->Fill(MT_metUncert_TauEnDown,final_weight);
+       }
+       ///
        if ( (PassFinalCuts(nGoodTau, met_val_PhotonEnUp,met_phi_PhotonEnUp,tau_pt[0],tau_phi[0]) == true) ) {
      //std::cout << "*metUncert_PhotonEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-    double MT_metUncert_PhotonEnUp = sqrt(2*tau_pt[0]*met_val_PhotonEnUp*(1- cos(dphi_tau_met)));
-    h1_MT_Stage1_metUncert_PhotonEnUp->Fill(MT_metUncert_PhotonEnUp,final_weight);
-      }
-      ///
+     double MT_metUncert_PhotonEnUp = sqrt(2*tau_pt[0]*met_val_PhotonEnUp*(1- cos(dphi_tau_met)));
+     h1_MT_Stage1_metUncert_PhotonEnUp->Fill(MT_metUncert_PhotonEnUp,final_weight);
+       }
+       ///
        if ( (PassFinalCuts(nGoodTau, met_val_PhotonEnDown,met_phi_PhotonEnDown,tau_pt[0],tau_phi[0]) == true) ) {
      //std::cout << "*metUncert_PhotonEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
-    double MT_metUncert_PhotonEnDown = sqrt(2*tau_pt[0]*met_val_PhotonEnDown*(1- cos(dphi_tau_met)));
-    h1_MT_Stage1_metUncert_PhotonEnDown->Fill(MT_metUncert_PhotonEnDown,final_weight);
-      }
-      ///
+     double MT_metUncert_PhotonEnDown = sqrt(2*tau_pt[0]*met_val_PhotonEnDown*(1- cos(dphi_tau_met)));
+     h1_MT_Stage1_metUncert_PhotonEnDown->Fill(MT_metUncert_PhotonEnDown,final_weight);
+       }
+       ///
        if ( (PassFinalCuts(nGoodTau, met_val_UnclusteredEnUp,met_phi_UnclusteredEnUp,tau_pt[0],tau_phi[0]) == true) ) {
      //std::cout << "*metUncert_UnclusteredEnUp* dphi_tau_met=" << dphi_tau_met << std::endl;
-    double MT_metUncert_UnclusteredEnUp = sqrt(2*tau_pt[0]*met_val_UnclusteredEnUp*(1- cos(dphi_tau_met)));
-    h1_MT_Stage1_metUncert_UnclusteredEnUp->Fill(MT_metUncert_UnclusteredEnUp,final_weight);
-      }
+     double MT_metUncert_UnclusteredEnUp = sqrt(2*tau_pt[0]*met_val_UnclusteredEnUp*(1- cos(dphi_tau_met)));
+     h1_MT_Stage1_metUncert_UnclusteredEnUp->Fill(MT_metUncert_UnclusteredEnUp,final_weight);
+       }
        ///
        if ( (PassFinalCuts(nGoodTau, met_val_UnclusteredEnDown,met_phi_UnclusteredEnDown,tau_pt[0],tau_phi[0]) == true) ) {
      //std::cout << "*metUncert_UnclusteredEnDown* dphi_tau_met=" << dphi_tau_met << std::endl;
@@ -989,12 +1249,12 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
 
 
      }
-   //}
+    //}
 
    //--------------//
    //-- Region A --// Only one non-isolated tau //
    //--------------//
-   if (passTauTrig && passHBHENoiseFilter && passHBHENoiseIsoFilter && passEcalDeadCellTriggerPrimitiveFilter && passgoodVertices && passeeBadScFilter && passglobalTightHalo2016Filter) {
+   if (passTauTrig && passAllMETFilters ) {
      if ( (nvtx>0) && (nTightMu==0) && (nLooseEle==0) ) {
        //** Stage1 = final stage (all cuts applied) **//
        if ( (PassFinalCuts(nGoodNonIsoTau,met_val,met_phi,tau_pt_nonIso[0],tau_phi_nonIso[0]) == true) ) {
@@ -1012,7 +1272,7 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
    //--------------//
    //-- Region C --// One non-isolated tau + one isolated e/mu
    //--------------//
-   if (passTauTrig && passHBHENoiseFilter && passHBHENoiseIsoFilter && passEcalDeadCellTriggerPrimitiveFilter && passgoodVertices && passeeBadScFilter && passglobalTightHalo2016Filter) {
+   if (passTauTrig && passAllMETFilters ) {
      if ( (nvtx>0)  &&  ((nTightMu+nLooseEle)==1)  ) {
        if ( (PassFinalCuts(nGoodNonIsoTau,met_val,met_phi,tau_pt_nonIso[0],tau_phi_nonIso[0]) == true) ) {
          h1_TauPt_RegC_Stage1->Fill(tau_pt_nonIso[0],final_weight);
@@ -1040,7 +1300,7 @@ MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
    //--------------//
    //-- Region D --// One isolated tau + one isolated e/mu
    //--------------//
-   if (passTauTrig && passHBHENoiseFilter && passHBHENoiseIsoFilter && passEcalDeadCellTriggerPrimitiveFilter && passgoodVertices && passeeBadScFilter && passglobalTightHalo2016Filter) {
+   if (passTauTrig && passAllMETFilters ) {
      if ( (nvtx>0)  &&  ((nTightMu+nLooseEle)==1)  ) {
        if ( (PassFinalCuts(nGoodTau,met_val,met_phi,tau_pt[0],tau_phi[0]) == true) ) {
          h1_TauPt_RegD_Stage1->Fill(tau_pt[0],final_weight);
@@ -1232,6 +1492,49 @@ void
 MiniAODAnalyzer::endJob()
 {
 
+  //  std::cout << "In endJob()" << std::endl;
+   if ( doPDFuncertainty) {
+    for (int nb=0; nb<nbinMT; nb++) {
+      double array[100] = {0.} ;
+      double temp=0.0;
+      double temp2=9.0e+100;
+      for (int nh=0; nh<100; nh++) {
+    double binCon = h1_MT_Stage1_pdfWt[nh]->GetBinContent(nb);
+    array[nh]=binCon;
+      }
+
+      for(int nh2=0;nh2<100;nh2++) {
+    if (array[nh2]>temp)  temp=array[nh2];
+    if (array[nh2]<temp2) temp2=array[nh2];
+      }
+
+      //      double nominal=h1_MT_Stage1->GetBinContent(nb);
+      //      std::cout << "Nominal= "<< nominal <<  " up= " << temp << " down=" << temp2 << std::endl;
+      h1_MT_Stage1_pdfUncertUp->SetBinContent(nb,temp);
+      h1_MT_Stage1_pdfUncertDown->SetBinContent(nb,temp2);
+
+    }
+  }
+
+  /*    ///-- nominal +/- RMS did not work. down always 0 --///
+  if ( doPDFuncertainty) {
+    for (int nb=0; nb<nbinMT; nb++) {
+      double val=0.0;
+      for (int nh=0; nh<100; nh++) {
+    double binCon = h1_MT_Stage1_pdfWt[nh]->GetBinContent(nb);
+    val=val + (binCon*binCon) ;
+      }
+      double rms= sqrt((val/100));
+      double nominal=h1_MT_Stage1->GetBinContent(nb);
+      double up= (nominal+rms);
+      double down = (nominal-rms);
+      //    std::cout << "nbin=" << nb << " nominal=" << nominal  << " rms=" << rms << " up/down=" << up << " / " << down << std::endl;
+      if (down<0.0) down=0.0;
+      h1_MT_Stage1_pdfUncertUp->SetBinContent(nb,up);
+      h1_MT_Stage1_pdfUncertDown->SetBinContent(nb,down);
+    }
+  }
+*/
   /*
    * this part can be removed, if we want to
    * "mytree" as to be reintroduced in the TFileService then
@@ -1288,6 +1591,8 @@ MiniAODAnalyzer::endJob()
   //subDir.cd();
   //helper.WriteTree("qcdtree");
 }
+
+
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void
@@ -1365,18 +1670,20 @@ void MiniAODAnalyzer::Create_Trees(){
   helper->Tree_Creater( &mQCDTree, "qcdtree");
 }
 
-void MiniAODAnalyzer::Fill_Tree(){
-    /*
+
+void MiniAODAnalyzer::Fill_Tree(TLorentzVector sel_lepton, const pat::MET sel_met){
+
     mLeptonTree["bjet1"]=0;
     mLeptonTree["mt"]=MT(sel_lepton,sel_met);
-    mLeptonTree["delta_phi"]=DeltaPhi(sel_lepton,sel_met);
-    mLeptonTree["pt"]=sel_lepton->getPt();
-    mLeptonTree["met"]=sel_met->getPt();
-    mLeptonTree["lepton_phi"]=sel_lepton->getPhi();
-    mLeptonTree["lepton_eta"]=sel_lepton->getEta();
-    mLeptonTree["met_phi"]=sel_met->getPhi();
-    mLeptonTree["kfak"]=k_fak_stored;
-    if(JetList->size()>0){
+    mLeptonTree["delta_phi"]=deltaPhi(part1.Phi(),part2.phi());
+    mLeptonTree["pt"]=sel_lepton->Pt();
+    mLeptonTree["met"]=sel_met->pt();
+    mLeptonTree["lepton_phi"]=sel_lepton->Phi();
+    mLeptonTree["lepton_eta"]=sel_lepton->Eta();
+    mLeptonTree["met_phi"]=sel_met->phi();
+    //mLeptonTree["kfak"]=k_fak_stored;
+    /*
+     * if(JetList->size()>0){
         pxl::Particle* jet = (pxl::Particle*) JetList->at(0);
         mLeptonTree["jet1_et"]=jet->getPt();
         mLeptonTree["jet1_phi"]=jet->getPhi();
@@ -1408,7 +1715,6 @@ void MiniAODAnalyzer::Fill_Tree(){
     }*/
     //helper.Tree_Filler("slimtree");
 }
-
 
 void MiniAODAnalyzer::Fill_QCD_Tree(bool iso){
 
