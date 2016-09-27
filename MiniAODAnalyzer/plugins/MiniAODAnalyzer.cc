@@ -626,7 +626,7 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
 
   // discriminators
   d_mydisc->clear();
-  /* 
+  /*
  d_mydisc= {
         "byLooseCombinedIsolationDeltaBetaCorr3Hits",
         "byMediumCombinedIsolationDeltaBetaCorr3Hits",
@@ -690,7 +690,19 @@ MiniAODAnalyzer::~MiniAODAnalyzer()
   delete  FakeCandLeptonEta;
   delete  FakeCandLeptonPhi;
   delete  FakeCandLeptonTrigger;
-  delete   FakeCandLorentz;
+  delete  FakeCandLorentz;
+  //for (std::unordered_map<std::string, float >::iterator it = mLeptonTree.begin(); it != mLeptonTree.end(); ++it) {
+    //delete it->second;
+  //}
+  //for (std::unordered_map<std::string, float >::iterator it = mReweightTree.begin(); it != mReweightTree.end(); ++it) {
+    //delete it->second;
+  //}
+  //for (std::unordered_map<std::string, float >::iterator it = mQCDTree.begin(); it != mQCDTree.end(); ++it) {
+    //delete it->second;
+  //}
+  //for (std::unordered_map<std::string, float >::iterator it = mFakeTree.begin(); it != mFakeTree.end(); ++it) {
+    //delete it->second;
+  //}
 
   if ( doPDFuncertainty ) {
     for (unsigned int i=0; i<100; i++) {
@@ -715,7 +727,7 @@ void MiniAODAnalyzer::beginRun( edm::Run const &iRun, edm::EventSetup const &iSe
       typedef std::vector<LHERunInfoProduct::Header>::const_iterator headers_const_iterator;
       iRun.getByLabel( lheString , run );
       if ( run.isValid()) {
-	// std::cout << "Take pdf weights from CMSSW" << std::endl;
+    // std::cout << "Take pdf weights from CMSSW" << std::endl;
     LHERunInfoProduct myLHERunInfoProduct = *(run.product());
         std::vector<std::string> weight_lines;
     for (headers_const_iterator iter=myLHERunInfoProduct.headers_begin(); iter!=myLHERunInfoProduct.headers_end(); iter++){
@@ -2652,7 +2664,7 @@ void MiniAODAnalyzer::QCDAnalyseTau( const pat::MET sel_met,double weight,edm::H
         int i=0;
         bool eleBool=false;
         for( auto part: *electrons) {
-	  if( part.pt()>m_leptonVetoPt && EleIDPassed->at(i)==1 ){
+      if( part.pt()>m_leptonVetoPt && EleIDPassed->at(i)==1 ){
                 eleCandi=(part);
                 eleBool=true;
                 break;
@@ -2664,7 +2676,7 @@ void MiniAODAnalyzer::QCDAnalyseTau( const pat::MET sel_met,double weight,edm::H
         bool muonBool=false;
         //for( auto part: MuonList) {
         for( auto part: *muons) {
-	  if( part.pt()>m_leptonVetoPt && MuonIDPassed->at(i)==1 ){
+      if( part.pt()>m_leptonVetoPt && MuonIDPassed->at(i)==1 ){
                 muoCandi=(part);
                 muonBool=true;
                 break;
