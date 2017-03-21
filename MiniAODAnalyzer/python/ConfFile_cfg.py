@@ -21,13 +21,13 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 #  (although it can be "overridden" by requirements of a given release)
 
 #80X_mcRun2_asymptotic_2016_TrancheIV_v6
-#process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_mc', '')     # MC
+process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_mc', '')     # MC
 
 #process.GlobalTag = GlobalTag(process.GlobalTag, '80X_mcRun2_asymptotic_2016_TrancheIV_v6', '')     # MC
 
 #process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_data', '')  # OBSOLETE?? DATA
 
-process.GlobalTag = GlobalTag(process.GlobalTag, '80X_dataRun2_2016SeptRepro_v7', '')  # reminiaod DATA B-G
+#process.GlobalTag = GlobalTag(process.GlobalTag, '80X_dataRun2_2016SeptRepro_v7', '')  # reminiaod DATA B-G
 
 #process.GlobalTag = GlobalTag(process.GlobalTag, '80X_dataRun2_Prompt_v16', '')  # reminiaod DATA H
 
@@ -62,7 +62,7 @@ process.source = cms.Source("PoolSource",
 #'/store/mc/RunIIFall15MiniAODv2/WprimeToTauNu_M-1000_TuneCUETP8M1_13TeV-pythia8-tauola/MINIAODSIM/PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1/60000/D8E02B5E-49B9-E511-BBF6-D8D385AE84C4.root'
 ## Moriond 17 samples ##
 #'/store/mc/RunIISummer16MiniAODv2/WToTauNu_M-200_TuneCUETP8M1_13TeV-pythia8-tauola/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/80000/0E082AEC-4FBE-E611-A1E6-FA163EF4D564.root'
-#'/store/mc/RunIISummer16MiniAODv2/WprimeToTauNUGIM_M600_gL1p5-madgraph/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/50000/4C54A632-C0C9-E611-8A77-008CFA0A5844.root'
+'/store/mc/RunIISummer16MiniAODv2/WprimeToTauNUGIM_M600_gL1p5-madgraph/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/50000/4C54A632-C0C9-E611-8A77-008CFA0A5844.root'
 #'/store/mc/RunIISummer16MiniAODv2/ZJetsToNuNu_HT-100To200_13TeV-madgraph/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6_ext1-v1/80000/000DDA5C-82D3-E611-A60D-A4BF0100DD3E.root'
 #'/store/mc/RunIISummer16MiniAODv2/WprimeToTauNu_M-1200_TuneCUETP8M1_13TeV-pythia8-tauola/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/70000/006926C1-1EB7-E611-93A8-ECB1D79E5C40.root'
 #'/store/mc/RunIISummer16MiniAODv2/WJetsToLNu_HT-100To200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6_ext2-v1/100000/04FAFBA6-3AD2-E611-99C0-90B11C1453E1.root'
@@ -72,7 +72,7 @@ process.source = cms.Source("PoolSource",
 #'/store/mc/RunIISummer16MiniAODv2/TT_TuneCUETP8M2T4_13TeV-powheg-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/50000/3CCF34DF-9DBE-E611-9512-0025905B858E.root'
 ##
 #        '/store/data/Run2016G/Tau/MINIAOD/23Sep2016-v1/110000/8267B1F2-B89E-E611-BE7F-0CC47A4D76C0.root'
-        '/store/data/Run2016F/Tau/MINIAOD/03Feb2017-v1/110000/029DABBB-A2EB-E611-938D-A0000420FE80.root'
+#        '/store/data/Run2016F/Tau/MINIAOD/03Feb2017-v1/110000/029DABBB-A2EB-E611-938D-A0000420FE80.root'
     )
 #    eventsToProcess = cms.untracked.VEventRange('1:40000-1:86000'),
 )
@@ -81,8 +81,8 @@ process.demo = cms.EDAnalyzer('MiniAODAnalyzer',
        doFakeHist_ = cms.bool(True),
        doTrees_ = cms.bool(True),
        useReweighting = cms.bool(True),
-#       RunOnData_ = cms.bool(False),
-       RunOnData_ = cms.bool(True),
+       RunOnData_ = cms.bool(False),
+#       RunOnData_ = cms.bool(True),
 ### generatorName required only for madgraph and powheg. For other cases one can just write "default"
 #       generatorName = cms.string("madgraphMLM"),
        generatorName = cms.string("default"),

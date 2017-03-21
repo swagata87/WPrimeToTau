@@ -1616,6 +1616,27 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
    }
 
+  iEvent.getByToken(jetToken_, jets);
+  
+   int ijet = 0;
+   for (const pat::Jet &j : *jets) {
+     std::cout << "ijet = " << ijet << " pT=" << j.pt() << " eta=" << j.eta() << std::endl; 
+     ijet++;
+     // if (j.pt() < 20) continue;
+     //  printf("jet  with pt %5.1f (raw pt %5.1f), eta %+4.2f, btag CSV %.3f, CISV %.3f, pileup mva disc %+.2f\n",
+     //     j.pt(), j.pt()*j.jecFactor("Uncorrected"), j.eta(), std::max(0.f,j.bDiscriminator("combinedSecondaryVertexBJetTags")), std::max(0.f,j.bDiscriminator("combinedInclusiveSecondaryVertexBJetTags")), j.userFloat("pileupJetId:fullDiscriminant"));
+     //  if ((++ijet) == 1) { // for the first jet, let's print the leading constituents
+     // std::vector daus(j.daughterPtrVector());
+     //  std::sort(daus.begin(), daus.end(), [](const reco::CandidatePtr &p1, const reco::CandidatePtr &p2) { return p1->pt() > p2->pt(); }); // the joys of C++11
+     //  for (unsigned int i2 = 0, n = daus.size(); i2 < n && i2 <= 3; ++i2) {
+     //	 const pat::PackedCandidate &cand = dynamic_cast<const pat::PackedCandidate &>(*daus[i2]);
+     //	 printf("         constituent %3d: pt %6.2f, dz(pv) %+.3f, pdgId %+3d\n", i2,cand.pt(),cand.dz(PV.position()),cand.pdgId());
+     // }
+     // }
+   }
+   std::cout << "Number of jets in this event: " << ijet <<  " .. .. " << jets->size() << std::endl; 
+ 
+
    //   std::cout << "nGoodTau=" << nGoodTau << std::endl;
    // In each event, the tau-ID scale factor is obtained using the first good tau //
    // This should be fine because in the end we select events with one good tau //
@@ -2038,8 +2059,6 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
    //std::cout << "Call QCDAnalyseTau" << std::endl;
    if (passEleTrig || passMuonTrig)  QCDAnalyseTau(met,final_weight,pruned);
    //if(tau_NoShift.Pt()>80 && calcMT(tau_NoShift,met)>50){
-   iEvent.getByToken(jetToken_, jets);
-
    //Fill_QCD_Tree(true,tau_NoShift,met,final_weight);
 
    if (passTauTrig) {
