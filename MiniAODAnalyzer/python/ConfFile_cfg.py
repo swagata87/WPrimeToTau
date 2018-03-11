@@ -20,16 +20,11 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 #  that is typically found in the DAS under the Configs for given dataset
 #  (although it can be "overridden" by requirements of a given release)
 
-#80X_mcRun2_asymptotic_2016_TrancheIV_v6
+
 #process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_mc', '')     # MC
-
-#process.GlobalTag = GlobalTag(process.GlobalTag, '80X_mcRun2_asymptotic_2016_TrancheIV_v8', '')     # MC
-
+process.GlobalTag = GlobalTag(process.GlobalTag, '80X_mcRun2_asymptotic_2016_TrancheIV_v8', '')     # MC
 #process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_data', '')  # OBSOLETE?? DATA
-
-#process.GlobalTag = GlobalTag(process.GlobalTag, '80X_dataRun2_2016SeptRepro_v7', '')  # reminiaod DATA B-G
-
-process.GlobalTag = GlobalTag(process.GlobalTag, '80X_dataRun2_Prompt_v16', '')  # reminiaod DATA H
+#process.GlobalTag = GlobalTag(process.GlobalTag, '92X_dataRun2_Prompt_v11', '')  # 2017 DATA
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger.cerr.FwkReport.reportEvery = 1000
@@ -48,7 +43,7 @@ switchOnVIDElectronIdProducer(process, dataFormat)
 # define which IDs we want to produce
 my_id_modules = [
     'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronHLTPreselecition_Summer16_V1_cff'
-  # 'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Summer16_80X_V1_cff'
+#   'RecoEgamma.ElectronIdentification.Identification.cutBasedElectronID_Summer16_80X_V1_cff'
     ]
 #add them to the VID producer
 for idmod in my_id_modules:
@@ -58,32 +53,9 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1))
 
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-##2015##
-#'/store/mc/RunIIFall15MiniAODv2/WprimeToTauNu_M-1000_TuneCUETP8M1_13TeV-pythia8-tauola/MINIAODSIM/PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1/60000/D8E02B5E-49B9-E511-BBF6-D8D385AE84C4.root'
-## Moriond 17 samples ##
-#'/store/mc/RunIISummer16MiniAODv2/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6_ext2-v1/100000/00099D43-77ED-E611-8889-5065F381E1A1.root',
-#'/store/mc/RunIISummer16MiniAODv2/DYJetsToLL_M-50_HT-2500toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/60000/308C289B-B8C0-E611-A7C6-0025905A606A.root',
-#'/store/mc/RunIISummer16MiniAODv2/DYJetsToLL_M-50_HT-2500toInf_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/60000/5C8C9696-AFC0-E611-BF54-0025905AA9CC.root',
-#'/store/mc/RunIISummer16MiniAODv2/DYJetsToLL_M-50_HT-800to1200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/120000/26CE940F-8CC0-E611-AAB8-FA163E641834.root'
-##'/store/mc/RunIISummer16MiniAODv2/DYJetsToLL_M-10to50_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/120000/00271851-3CC8-E611-AFB9-002590D0AFD8.root'
-#'/store/mc/RunIISummer16MiniAODv2/ZJetsToNuNu_HT-100To200_13TeV-madgraph/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6_ext1-v1/80000/000DDA5C-82D3-E611-A60D-A4BF0100DD3E.root'
-#'/store/mc/RunIISummer16MiniAODv2/ZJetsToNuNu_HT-400To600_13TeV-madgraph/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6_ext1-v1/50000/0021491A-93BE-E611-BB42-0025905B860E.root'
-#'/store/mc/RunIISummer16MiniAODv2/WToTauNu_M-200_TuneCUETP8M1_13TeV-pythia8-tauola/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/80000/0E082AEC-4FBE-E611-A1E6-FA163EF4D564.root'
-#'/store/mc/RunIISummer16MiniAODv2/WprimeToTauNUGIM_M600_gL1p5-madgraph/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/50000/4C54A632-C0C9-E611-8A77-008CFA0A5844.root'
-#'/store/mc/RunIISummer16MiniAODv2/ZJetsToNuNu_HT-100To200_13TeV-madgraph/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6_ext1-v1/80000/000DDA5C-82D3-E611-A60D-A4BF0100DD3E.root'
-#'/store/mc/RunIISummer16MiniAODv2/WprimeToTauNu_M-5800_TuneCUETP8M1_13TeV-pythia8-tauola/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/70000/C4E42C6F-01C2-E611-B626-848F69FD4C94.root'
-#'/store/mc/RunIISummer16MiniAODv2/WprimeToTauNu_M-1200_TuneCUETP8M1_13TeV-pythia8-tauola/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/70000/006926C1-1EB7-E611-93A8-ECB1D79E5C40.root'
-#'/store/mc/RunIISummer16MiniAODv2/WJetsToLNu_HT-100To200_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6_ext2-v1/100000/04FAFBA6-3AD2-E611-99C0-90B11C1453E1.root'
+'/store/mc/RunIISummer16MiniAODv2/WToTauNu_M-200_TuneCUETP8M1_13TeV-pythia8-tauola/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/80000/0E082AEC-4FBE-E611-A1E6-FA163EF4D564.root'
 #'/store/mc/RunIISummer16MiniAODv2/TT_TuneCUETP8M2T4_13TeV-powheg-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/50000/0693E0E7-97BE-E611-B32F-0CC47A78A3D8.root'
-#'/store/mc/RunIISummer16MiniAODv2/TT_TuneCUETP8M2T4_13TeV-powheg-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/50000/0806AB92-99BE-E611-9ECD-0025905A6138.root'
-#'/store/mc/RunIISummer16MiniAODv2/TT_TuneCUETP8M2T4_13TeV-powheg-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/50000/165F54A0-A3BE-E611-B3F7-0025905A606A.root'
-#'/store/mc/RunIISummer16MiniAODv2/TT_TuneCUETP8M2T4_13TeV-powheg-pythia8/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/50000/3CCF34DF-9DBE-E611-9512-0025905B858E.root'
-##
-#        '/store/data/Run2017F/Tau/MINIAOD/PromptReco-v1/000/305/043/00000/B68B7448-1AB2-E711-BE14-02163E012A93.root'
-        '/store/data/Run2016F/Tau/MINIAOD/03Feb2017-v1/110000/0A56738E-9CEB-E611-A799-ECF4BBE16230.root'
-#        '/store/data/Run2016G/Tau/MINIAOD/23Sep2016-v1/110000/8267B1F2-B89E-E611-BE7F-0CC47A4D76C0.root'
-#        '/store/data/Run2016F/Tau/MINIAOD/03Feb2017-v1/110000/029DABBB-A2EB-E611-938D-A0000420FE80.root'
-#'/store/mc/RunIISummer16MiniAODv2/ZToMuMu_NNPDF30_13TeV-powheg_M_50_120/MINIAODSIM/PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/60000/243D09B4-90D1-E611-B0FA-001E674DA347.root'
+#        '/store/data/Run2017F/Tau/MINIAOD/PromptReco-v1/000/305/044/00000/0A2CBC68-31B2-E711-A374-02163E019E23.root'
     )
 #    eventsToProcess = cms.untracked.VEventRange('1:40000-1:86000'),
 )
@@ -95,8 +67,8 @@ process.demo = cms.EDAnalyzer('MiniAODAnalyzer',
        doFakeHist_ = cms.bool(False),
        doTrees_ = cms.bool(False),
        useReweighting = cms.bool(False),
-#       RunOnData_ = cms.bool(False),
-       RunOnData_ = cms.bool(True),
+       RunOnData_ = cms.bool(False),
+#       RunOnData_ = cms.bool(True),
 ### generatorName required only for madgraph and powheg. For other cases one can just write "default"
 #       generatorName = cms.string("madgraphMLM"),
        generatorName = cms.string("default"),
@@ -105,14 +77,14 @@ process.demo = cms.EDAnalyzer('MiniAODAnalyzer',
 #       pdfName = cms.string("NNPDF30_lo_as_0130.LHgrid"),   # madgraphMLM
 #       pdfName = cms.string("NNPDF23_lo_as_0130_qed.LHgrid"), # NUGIM madgraph
        pdfName = cms.string("default"),   # powheg and others
-       debugLevel_ = cms.int32(0),
+       debugLevel_ = cms.int32(2),
        vertices = cms.InputTag("offlineSlimmedPrimaryVertices"),
        taus = cms.InputTag("slimmedTaus"),
        muons = cms.InputTag("slimmedMuons"),
        electrons = cms.InputTag("slimmedElectrons"),
        jets = cms.InputTag("slimmedJets"),
        met = cms.InputTag("slimmedMETs"),
-       met_reminiaod = cms.InputTag("slimmedMETsMuEGClean"),
+       met_reminiaod = cms.InputTag("slimmedMETs"),
        bits = cms.InputTag("TriggerResults","","HLT"),
 #       bits_MET = cms.InputTag("TriggerResults","","RECO"), ## OBSOLETE ##use only for old data
        bits_MET = cms.InputTag("TriggerResults","","PAT"),  ##for MC and reminiAOD DATA
@@ -135,7 +107,7 @@ process.demo = cms.EDAnalyzer('MiniAODAnalyzer',
        BadChargedCandidateFilter = cms.InputTag("BadChargedCandidateFilter"),
        BadPFMuonFilter = cms.InputTag("BadPFMuonFilter"),
        eleIdMap = cms.InputTag("egmGsfElectronIDs:cutBasedElectronHLTPreselection-Summer16-V1"),
-    #  eleIdMap = cms.InputTag("egmGsfElectronIDs:cutBasedElectronID-Summer16-80X-V1-loose"),
+  #     eleIdMap = cms.InputTag("egmGsfElectronIDs:cutBasedElectronID-Summer16-80X-V1-loose"),
   #     LHEEventTag = cms.InputTag("externalLHEProducer","","LHE"),
        LHEEventTag = cms.InputTag("externalLHEProducer"),
   #     LHEEventTag = cms.InputTag("source","","LHEFile"),
@@ -151,6 +123,6 @@ process.TFileService = cms.Service("TFileService",
 
 #process.run = cms.Path(process.BadPFMuonFilter *process.BadChargedCandidateFilter)
 
-process.p = cms.Path(process.METFiltersSequence*process.egmGsfElectronIDSequence*process.demo)
+process.p = cms.Path(process.egmGsfElectronIDSequence*process.demo)
 #process.demo)
 #process.p = cms.Path(process.demo)

@@ -16,9 +16,9 @@ config.Data.inputDataset = ''
 config.Data.inputDBS = 'global'
 config.Data.splitting = 'FileBased'
 #config.Data.unitsPerJob = 10
-config.Data.outLFNDirBase = '/store/user/%s/crab_March3/' % (getUsernameFromSiteDB())
+config.Data.outLFNDirBase = '/store/user/%s/crab_2017_Nov14/' % (getUsernameFromSiteDB())
 config.Data.publication = False
-config.Data.outputDatasetTag = 'WPrimeToTaus_March3'
+config.Data.outputDatasetTag = 'WPrimeToTaus_2017_Nov14'
 config.Site.storageSite = 'T2_DE_RWTH'
 
 if __name__ == '__main__':
@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     # We want to put all the CRAB project directories from the tasks we submit here into one common directory.
     # That's why we need to set this parameter (here or above in the configuration file, it does not matter, we will not overwrite it).
-    config.General.workArea = 'crab_projects_March3'
+    config.General.workArea = 'crab_projects_2017_Nov14'
 
     def submit(config):
         try:
@@ -46,108 +46,108 @@ if __name__ == '__main__':
 
 ## Signal SSM ##
 
-    config.General.requestName = 'WprimeToTauNu_M-400_TuneCUETP8M1_13TeV-pythia8-tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M-400_TuneCUETP8M1_13TeV-pythia8-tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-400_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M-400_TuneCUETP8M1_13TeV-pythia8-tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M-400_TuneCUETP8M1_13TeV-pythia8-tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-400_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_600_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_600_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-600_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_600_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_600_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-600_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M-1000_TuneCUETP8M1_13TeV-pythia8-tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M-1000_TuneCUETP8M1_13TeV-pythia8-tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-1000_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M-1000_TuneCUETP8M1_13TeV-pythia8-tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M-1000_TuneCUETP8M1_13TeV-pythia8-tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-1000_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_1200_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_1200_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-1200_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_1200_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_1200_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-1200_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_1400_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_1400_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-1400_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_1400_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_1400_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-1400_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_1600_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_1600_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-1600_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_1600_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_1600_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-1600_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_1800_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_1800_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-1800_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_1800_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_1800_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-1800_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M-2000_TuneCUETP8M1_13TeV-pythia8-tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M-2000_TuneCUETP8M1_13TeV-pythia8-tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-2000_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M-2000_TuneCUETP8M1_13TeV-pythia8-tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M-2000_TuneCUETP8M1_13TeV-pythia8-tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-2000_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_2200_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_2200_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-2200_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_2200_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_2200_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-2200_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_2400_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_2400_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-2400_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_2400_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_2400_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-2400_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_2600_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_2600_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-2600_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_2600_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_2600_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-2600_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_2800_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_2800_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-2800_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_2800_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_2800_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-2800_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
 
-    config.General.requestName = 'WprimeToTauNu_M-3000_TuneCUETP8M1_13TeV-pythia8-tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M-3000_TuneCUETP8M1_13TeV-pythia8-tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-3000_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M-3000_TuneCUETP8M1_13TeV-pythia8-tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M-3000_TuneCUETP8M1_13TeV-pythia8-tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-3000_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_3200_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_3200_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-3200_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_3200_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_3200_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-3200_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_3400_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_3400_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-3400_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_3400_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_3400_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-3400_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_3600_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_3600_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-3600_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_3600_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_3600_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-3600_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_3800_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_3800_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-3800_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_3800_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_3800_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-3800_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
 
     config.General.requestName = 'WprimeToTauNu_M-4000_TuneCUETP8M1_13TeV-pythia8-tauola'
@@ -156,60 +156,60 @@ if __name__ == '__main__':
     config.Data.unitsPerJob = 1
     submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_4200_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_4200_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-4200_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_4200_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_4200_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-4200_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_4400_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_4400_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-4400_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_4400_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_4400_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-4400_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_4600_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_4600_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-4600_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_4600_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_4600_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-4600_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_4800_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_4800_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-4800_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_4800_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_4800_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-4800_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
 
-    config.General.requestName = 'WprimeToTauNu_M-5000_TuneCUETP8M1_13TeV-pythia8-tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M-5000_TuneCUETP8M1_13TeV-pythia8-tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-5000_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M-5000_TuneCUETP8M1_13TeV-pythia8-tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M-5000_TuneCUETP8M1_13TeV-pythia8-tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-5000_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_5200_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_5200_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-5200_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_5200_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_5200_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-5200_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_5400_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_5400_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-5400_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_5400_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_5400_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-5400_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_5600_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_5600_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-5600_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_5600_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_5600_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-5600_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
-    config.General.requestName = 'WprimeToTauNu_M_5800_TuneCUETP8M1_13TeV_pythia8_tauola'
-    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_5800_TuneCUETP8M1_13TeV_pythia8_tauola']
-    config.Data.inputDataset = '/WprimeToTauNu_M-5800_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
-    config.Data.unitsPerJob = 1
-    submit(config)
+#    config.General.requestName = 'WprimeToTauNu_M_5800_TuneCUETP8M1_13TeV_pythia8_tauola'
+#    config.JobType.pyCfgParams = ['sourceFileStringInput=WprimeToTauNu_M_5800_TuneCUETP8M1_13TeV_pythia8_tauola']
+#    config.Data.inputDataset = '/WprimeToTauNu_M-5800_TuneCUETP8M1_13TeV-pythia8-tauola/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+#    config.Data.unitsPerJob = 1
+#    submit(config)
 
 
 ## Background ##
@@ -222,6 +222,12 @@ if __name__ == '__main__':
     config.Data.unitsPerJob = 2
     submit(config)
 
+    config.General.requestName = 'WW_TuneCUETP8M1_13TeV-pythia8_ext1'
+    config.JobType.pyCfgParams = ['sourceFileStringInput=WW_TuneCUETP8M1_13TeV-pythia8']
+    config.Data.inputDataset = '/WW_TuneCUETP8M1_13TeV-pythia8/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6_ext1-v1/MINIAODSIM'
+    config.Data.unitsPerJob = 2
+    submit(config)
+
 ##
 ## WZ
 ##
@@ -231,12 +237,24 @@ if __name__ == '__main__':
     config.Data.unitsPerJob = 2
     submit(config)
 
+    config.General.requestName = 'WZ_TuneCUETP8M1_13TeV-pythia8_ext1'
+    config.JobType.pyCfgParams = ['sourceFileStringInput=WZ_TuneCUETP8M1_13TeV-pythia8']
+    config.Data.inputDataset = 'WZ_TuneCUETP8M1_13TeV-pythia8/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6_ext1-v1/MINIAODSIM'
+    config.Data.unitsPerJob = 2
+    submit(config)
+
 ##
 ## ZZ
 ##
     config.General.requestName = 'ZZ_TuneCUETP8M1_13TeV-pythia8'
     config.JobType.pyCfgParams = ['sourceFileStringInput=ZZ_TuneCUETP8M1_13TeV-pythia8']
     config.Data.inputDataset = '/ZZ_TuneCUETP8M1_13TeV-pythia8/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM'
+    config.Data.unitsPerJob = 2
+    submit(config)
+
+    config.General.requestName = 'ZZ_TuneCUETP8M1_13TeV-pythia8_ext1'
+    config.JobType.pyCfgParams = ['sourceFileStringInput=ZZ_TuneCUETP8M1_13TeV-pythia8']
+    config.Data.inputDataset = '/ZZ_TuneCUETP8M1_13TeV-pythia8/RunIISummer16MiniAODv2-PUMoriond17_80X_mcRun2_asymptotic_2016_TrancheIV_v6_ext1-v1/MINIAODSIM'
     config.Data.unitsPerJob = 2
     submit(config)
 

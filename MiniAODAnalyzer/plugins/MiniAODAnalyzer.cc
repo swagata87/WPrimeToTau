@@ -19,7 +19,6 @@
 
 // system include files
 #include <memory>
-
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "PhysicsTools/Utilities/interface/LumiReWeighting.h"
@@ -100,8 +99,8 @@
 // constructor "usesResource("TFileService");"
 // This will improve performance in multithreaded jobs.
 
-//class MiniAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
-class MiniAODAnalyzer : public edm::EDAnalyzer {
+class MiniAODAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
+  //class MiniAODAnalyzer : public edm::EDAnalyzer {
 public:
   explicit MiniAODAnalyzer(const edm::ParameterSet&);
   ~MiniAODAnalyzer();
@@ -109,10 +108,11 @@ public:
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
 
 private:
-  virtual void beginJob() override;
-  virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
-  virtual void endJob() override;
-  virtual void beginRun( edm::Run const &iRun, edm::EventSetup const &iSetup ) override;
+  virtual void beginJob(); // override;
+  virtual void analyze(const edm::Event&, const edm::EventSetup&);// override;
+  virtual void endJob(); // override;
+  //  virtual void beginRun( edm::Run const &, edm::EventSetup const &iSetup ); // override;
+  virtual void beginRun( edm::Run const &iRun, edm::EventSetup const &iSetup ); // override;
 
   float DRTauMu(TLorentzVector, std::vector<TLorentzVector>);
 
@@ -620,6 +620,7 @@ MiniAODAnalyzer::MiniAODAnalyzer(const edm::ParameterSet& iConfig):
   // (iConfig.getParameter<edm::InputTag>
   // ("electronsMiniAOD"));
   electronToken_(mayConsume<edm::View<reco::GsfElectron>>(iConfig.getParameter<edm::InputTag>("electrons"))),
+  // electronToken_(consumes<pat::ElectronCollection>(iConfig.getParameter<edm::InputTag>("electrons"))),
   metToken_(consumes<pat::METCollection>(iConfig.getParameter<edm::InputTag>("met"))),
   metToken_reminiaod_(consumes<pat::METCollection>(iConfig.getParameter<edm::InputTag>("met_reminiaod"))),
   triggerBits_(consumes<edm::TriggerResults>(iConfig.getParameter<edm::InputTag>("bits"))),
@@ -993,15 +994,16 @@ MiniAODAnalyzer::~MiniAODAnalyzer()
 void MiniAODAnalyzer::beginRun( edm::Run const &iRun, edm::EventSetup const &iSetup ) {
   pdf_indices->clear();
   alpha_indices.clear();
-  
+
+  /*  
   if (!RunOnData ) {
     if ( doPDFuncertainty) {
-      edm::Handle<LHERunInfoProduct> run;
+      edm::Handle<LHERunInfoProduct> myrun;
       typedef std::vector<LHERunInfoProduct::Header>::const_iterator headers_const_iterator;
-      iRun.getByLabel( lheString , run );
-      std::cout << "LHERunInfoProduct available ?  " << run.isValid() << std::endl;
-      if ( run.isValid()) {
-	LHERunInfoProduct myLHERunInfoProduct = *(run.product());
+      iRun.getByToken( lheString , myrun );
+      std::cout << "LHERunInfoProduct available ?  " << myrun.isValid() << std::endl;
+      if ( myrun.isValid()) {
+	LHERunInfoProduct myLHERunInfoProduct = *(myrun.product());
         std::vector<std::string> weight_lines;
 	for (headers_const_iterator iter=myLHERunInfoProduct.headers_begin(); iter!=myLHERunInfoProduct.headers_end(); iter++){
 	  std::vector<std::string> lines = iter->lines();
@@ -1015,7 +1017,7 @@ void MiniAODAnalyzer::beginRun( edm::Run const &iRun, edm::EventSetup const &iSe
 	    }
 	}
 	int pdfidx = 0;
-	pdfidx = run->heprup().PDFSUP.first;
+	pdfidx = myrun->heprup().PDFSUP.first;
 	if (generatorName_=="powheg" && pdfidx==-1) pdfidx=260000;
 	std::cout << "This sample was generated with the following PDFs : "   << pdfidx <<   std::endl;
 	pdfid_1 = boost::lexical_cast<std::string>(pdfidx + 1);
@@ -1044,11 +1046,12 @@ void MiniAODAnalyzer::beginRun( edm::Run const &iRun, edm::EventSetup const &iSe
 	  alphas_id_1 = "265400";
 	  alphas_id_2 = "266400";
 	}
-	/*
+
+	
 	else {
 	  alphas_id_1 = "0";
           alphas_id_2 = "0";
-	  }*/
+	  }
        	std::cout << "alpha_S min and max id  : " << alphas_id_1 << "   " << alphas_id_2 << std::endl;
 	
 	
@@ -1126,6 +1129,9 @@ void MiniAODAnalyzer::beginRun( edm::Run const &iRun, edm::EventSetup const &iSe
       }
     }
   }
+
+*/
+
 }
 
 // ------------ method called for each event  ------------
@@ -1147,7 +1153,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   //------//
   Run   = iEvent.id().run();
   Event = iEvent.id().event();
-  // std::cout << "\n --EVENT-- " << Event << std::endl;
+  //  std::cout << "\n --EVENT-- " << Event << std::endl;
 
   edm::Handle<LHEEventProduct> EvtHandle ;
   if  ( !(RunOnData) ) {
@@ -1305,7 +1311,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
   ///--PDF weight--///
   //  edm::Handle<LHEEventProduct> EvtHandle ;
-  if  ( !(RunOnData) ) {
+  /* if  ( !(RunOnData) ) {
     //std::cout << "EvtHandle.isValid() = " << EvtHandle.isValid() << " This is needed for pdf and alpha_s weights" << std::endl;
     // iEvent.getByToken( LHEEventToken_ , EvtHandle ) ;
     if  ( (EvtHandle.isValid()) ) {
@@ -1338,6 +1344,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
       }
     }   /// Event Handle valid ?
   }
+*/
   
   
   //-- probValue --//
@@ -1383,7 +1390,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   if (RunOnData) {
     mc_event_weight=1.0;
   }
-  //  std::cout << "RunOnData=" << RunOnData << " mc_event_weight=" << mc_event_weight << std::endl;
+  // std::cout << "RunOnData=" << RunOnData << " mc_event_weight=" << mc_event_weight << std::endl;
 
 
    //---Trigger---//
@@ -1408,8 +1415,8 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
      // ": " << (triggerBits->accept(i) ? "PASS" : "fail (or not run)")
      //		 << std::endl;
      // }
-     if ( (names.triggerName(i)).find("HLT_LooseIsoPFTau50_Trk30_eta2p1_MET90") != std::string::npos ) {
-       //  std::cout << names.triggerName(i) << " "  << (triggerBits->accept(i) ? "PASS" : "fail (or not run)") << std::endl;
+     if ( (names.triggerName(i)).find("HLT_MediumChargedIsoPFTau50_Trk30_eta2p1_1pr_MET90_v") != std::string::npos ) {
+       // std::cout << names.triggerName(i) << " "  << (triggerBits->accept(i) ? "PASS" : "fail (or not run)") << std::endl;
        passTauTrig=triggerBits->accept(i) ;
        // std::cout << "passTauTrig=" << passTauTrig << std::endl;
      }
@@ -1418,45 +1425,40 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 	 //(names.triggerName(i)).find("HLT_IsoTkMu22_eta2p1") != std::string::npos or
 	 //(names.triggerName(i)).find("HLT_IsoMu22") != std::string::npos or
 	 //(names.triggerName(i)).find("HLT_IsoTkMu22") != std::string::npos or
-          (names.triggerName(i)).find("HLT_IsoMu24_v") != std::string::npos or
-          (names.triggerName(i)).find("HLT_IsoTkMu24_v") != std::string::npos or 
-	  (names.triggerName(i)).find("HLT_IsoMu24_eta2p1_v") != std::string::npos or
-          (names.triggerName(i)).find("HLT_IsoTkMu24_eta2p1_v") != std::string::npos or
-	  (names.triggerName(i)).find("HLT_IsoMu27_v") != std::string::npos or
-	  (names.triggerName(i)).find("HLT_IsoTkMu27_v") != std::string::npos or
-          //(names.triggerName(i)).find("HLT_Mu45_eta2p1") != std::string::npos or
-	  (names.triggerName(i)).find("HLT_Mu50_v") != std::string::npos or
-          (names.triggerName(i)).find("HLT_TkMu50_v") != std::string::npos
+          (names.triggerName(i)).find("HLT_IsoMu27_v") != std::string::npos or
+	  (names.triggerName(i)).find("HLT_Mu50_v") != std::string::npos
 	  ) {
        passMuonTrig=triggerBits->accept(i) ;
        if (passMuonTrig==true) break;
      }
      //// Muon Trigger for Tau-trigger efficiency measurements ////
-     if ( ((names.triggerName(i)).find("HLT_Mu30_TkMu11_v") != std::string::npos) or
-          ((names.triggerName(i)).find("HLT_Mu40_TkMu11_v") != std::string::npos) or
-          ((names.triggerName(i)).find("HLT_Mu45_eta2p1_v") != std::string::npos) or
+     if ( 
+	 //((names.triggerName(i)).find("HLT_Mu30_TkMu11_v") != std::string::npos) or
+         // ((names.triggerName(i)).find("HLT_Mu40_TkMu11_v") != std::string::npos) or
+         /// ((names.triggerName(i)).find("HLT_Mu45_eta2p1_v") != std::string::npos) or
 	  ((names.triggerName(i)).find("HLT_Mu50_v") != std::string::npos) or
-          ((names.triggerName(i)).find("HLT_IsoMu22_eta2p1_v") != std::string::npos) or
-	  ((names.triggerName(i)).find("HLT_IsoMu22_v") != std::string::npos) or
-	  ((names.triggerName(i)).find("HLT_IsoMu24_eta2p1_v") != std::string::npos) or
-	  ((names.triggerName(i)).find("HLT_IsoMu24_v") != std::string::npos)   
+          //((names.triggerName(i)).find("HLT_IsoMu22_eta2p1_v") != std::string::npos) or
+	  // ((names.triggerName(i)).find("HLT_IsoMu22_v") != std::string::npos) or
+	  // ((names.triggerName(i)).find("HLT_IsoMu24_eta2p1_v") != std::string::npos) or
+	 ((names.triggerName(i)).find("HLT_IsoMu27_v") != std::string::npos)   
      ) {
        //       std::cout << "Checking Muon trigger " << names.triggerName(i) << " Status " << triggerBits->accept(i)  <<  std::endl;
        passMuonTrig_ForEff=triggerBits->accept(i) ;
        if (passMuonTrig_ForEff==true) break;
      }
-     if ( (names.triggerName(i)).find("HLT_Ele25_eta2p1_WPTight_Gsf") != std::string::npos or
-          (names.triggerName(i)).find("HLT_Ele25_WPTight_Gsf") != std::string::npos or
-          (names.triggerName(i)).find("HLT_Ele27_WPTight_Gsf") != std::string::npos or
-	  (names.triggerName(i)).find("HLT_Ele27_eta2p1_WPTight_Gsf") != std::string::npos or
-          (names.triggerName(i)).find("HLT_Ele30_eta2p1_WPTight_Gsf") != std::string::npos or
-	  (names.triggerName(i)).find("HLT_Ele30_WPTight_Gsf") != std::string::npos or
-          (names.triggerName(i)).find("HLT_Ele32_eta2p1_WPTight_Gsf") != std::string::npos or
-	  (names.triggerName(i)).find("HLT_Ele32_WPTight_Gsf") != std::string::npos or
-          (names.triggerName(i)).find("HLT_Ele105_CaloIdVT_GsfTrkIdT") != std::string::npos or
-	  (names.triggerName(i)).find("HLT_Ele115_CaloIdVT_GsfTrkIdT") != std::string::npos or
-          (names.triggerName(i)).find("HLT_Ele145_CaloIdVT_GsfTrkIdT") != std::string::npos or
-          (names.triggerName(i)).find("HLT_Ele200_CaloIdVT_GsfTrkIdT") != std::string::npos
+     if ( 
+	 //(names.triggerName(i)).find("HLT_Ele25_eta2p1_WPTight_Gsf") != std::string::npos or
+          (names.triggerName(i)).find("HLT_Ele35_WPTight_Gsf_v") != std::string::npos or
+	  //  (names.triggerName(i)).find("HLT_Ele27_WPTight_Gsf") != std::string::npos or
+	  //  (names.triggerName(i)).find("HLT_Ele27_eta2p1_WPTight_Gsf") != std::string::npos or
+	  //  (names.triggerName(i)).find("HLT_Ele30_eta2p1_WPTight_Gsf") != std::string::npos or
+	  //  (names.triggerName(i)).find("HLT_Ele30_WPTight_Gsf") != std::string::npos or
+	  //  (names.triggerName(i)).find("HLT_Ele32_eta2p1_WPTight_Gsf") != std::string::npos or
+	  //  (names.triggerName(i)).find("HLT_Ele32_WPTight_Gsf") != std::string::npos or
+	  // (names.triggerName(i)).find("HLT_Ele105_CaloIdVT_GsfTrkIdT") != std::string::npos or
+	  (names.triggerName(i)).find("HLT_Ele115_CaloIdVT_GsfTrkIdT") != std::string::npos 
+	  //  (names.triggerName(i)).find("HLT_Ele145_CaloIdVT_GsfTrkIdT") != std::string::npos or
+	  //  (names.triggerName(i)).find("HLT_Ele200_CaloIdVT_GsfTrkIdT") != std::string::npos
      ) {
        passEleTrig=triggerBits->accept(i) ;
        if (passEleTrig==true) break;
@@ -1478,6 +1480,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
    const edm::TriggerNames &names_MET = iEvent.triggerNames(*triggerBits_MET);
 
    bool passAllMETFilters=0;
+
    bool passHBHENoiseFilter=0;
    bool passHBHENoiseIsoFilter=0;
    bool passEcalDeadCellTriggerPrimitiveFilter=0;
@@ -1485,6 +1488,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
    bool passeeBadScFilter=0;
    bool passglobalTightHalo2016Filter=0;
    bool NobadMuons=0;
+   bool NobadChCand=0;
  
    //   std::cout << " === TRIGGER PATHS (MET) === " << std::endl;
    for (unsigned int i = 0, n = triggerBits_MET->size(); i < n; ++i) {
@@ -1506,38 +1510,25 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
      if ( (names_MET.triggerName(i)).find("Flag_eeBadScFilter") != std::string::npos ) {
        passeeBadScFilter=triggerBits_MET->accept(i) ;
      }
-     if ( (names_MET.triggerName(i)).find("Flag_globalTightHalo2016Filter") != std::string::npos ) {
+     if ( (names_MET.triggerName(i)).find("Flag_globalSuperTightHalo2016Filter") != std::string::npos ) {
        passglobalTightHalo2016Filter=triggerBits_MET->accept(i) ;
      }
-     ////
-     if (RunOnData) {
-       if ( (names_MET.triggerName(i)).find("Flag_noBadMuons") != std::string::npos ) {
-	 NobadMuons=triggerBits_MET->accept(i) ;
-	 // std::cout << "noBadMuons = " << NobadMuons << std::endl;
-       }
-     } else if (!RunOnData) {
-       NobadMuons=1;
+     if ( (names_MET.triggerName(i)).find("Flag_BadPFMuonFilter") != std::string::npos ) {
+       NobadMuons=triggerBits_MET->accept(i) ;
      }
-     ////
+     if ( (names_MET.triggerName(i)).find("Flag_BadChargedCandidateFilter") != std::string::npos ) {
+       NobadChCand=triggerBits_MET->accept(i) ;
+     }
    }
-
+   ////
+   
+   
    if (!RunOnData) passeeBadScFilter=1;
 
-   //---MET FILTERS THAT ARE UNAVAILABLE IN MINIAOD AS FLAG---//
-   edm::Handle<bool> ifilterbadChCand;
-   iEvent.getByToken(BadChCandFilterToken_, ifilterbadChCand);
-   bool  filterbadChCandidate = *ifilterbadChCand;
-   //   if (filterbadChCandidate<1)   std::cout << "filterbadChCandidate=" << filterbadChCandidate << std::endl;
-
-   edm::Handle<bool> ifilterbadPFMuon;
-   iEvent.getByToken(BadPFMuonFilterToken_, ifilterbadPFMuon);
-   bool filterbadPFMuon = *ifilterbadPFMuon;
-   //  if (filterbadPFMuon<1)   std::cout << "filterbadPFMuon=" << filterbadPFMuon << std::endl;
-
    //Pass All MET Filters? //
-   passAllMETFilters =  passHBHENoiseFilter * passHBHENoiseIsoFilter * passEcalDeadCellTriggerPrimitiveFilter * passgoodVertices * passeeBadScFilter * passglobalTightHalo2016Filter * filterbadChCandidate * filterbadPFMuon * NobadMuons ;
+   passAllMETFilters =  passHBHENoiseFilter * passHBHENoiseIsoFilter * passEcalDeadCellTriggerPrimitiveFilter * passgoodVertices * passeeBadScFilter * passglobalTightHalo2016Filter * NobadChCand * NobadMuons ;
    //   passAllMETFilters=1.0;
-   //  std::cout << "passAllMETFilters=" << passAllMETFilters << std::endl;
+   // std::cout << "passAllMETFilters=" << passAllMETFilters << std::endl;
 
    ///-- VERTEX --///
    edm::Handle<reco::VertexCollection> vertices;
@@ -1581,7 +1572,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
      //       printf("muon with pt %4.1f, dz(PV) %+5.3f, POG loose id %d, tight id %d\n",
      //     mu.pt(), mu.muonBestTrack()->dz(PV.position()), mu.isLooseMuon(), mu.isTightMuon(PV));
    }
-   //std::cout << "nTightMu=" << nTightMu << std::endl;
+   //   std::cout << "nTightMu=" << nTightMu << std::endl;
 
    float mass=0.0;
    float pTz=0.0;
@@ -1642,7 +1633,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
    
 
 
-//std::cout << "dimuon mass = " << mass << " dimuon pt=" << pTz << std::endl; 
+   // std::cout << "dimuon mass = " << mass << " dimuon pt=" << pTz << std::endl; 
 //std::cout << "dimuon px=" << PX_z << " py=" << PY_z << " pz=" << PZ_z << " E=" << E_z << std::endl; 
 //   std::cout << "dimuon phi = " << Phi_z << std::endl;
 
@@ -1651,12 +1642,15 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
    int nLooseEle=0;
    iEvent.getByToken(electronToken_, electrons);
-   // for (const pat::Electron &el : *electrons) {
+   //   for (const pat::Electron &el : *electrons) {
    for (size_t i = 0; i < electrons->size(); ++i){
      const auto el = electrons->ptrAt(i);
      if (el->pt() < 5) continue;
+     // why >6, see here: https://github.com/cms-sw/cmssw/blob/CMSSW_8_1_X/DataFormats/PatCandidates/interface/Electron.h
      //https://twiki.cern.ch/twiki/bin/view/CMS/CutBasedElectronIdentificationRun2
-     //if ( (el.pt()>20) &&  ( abs(el.eta())<2.5 )  && (el.electronID("cutBasedElectronID-Spring15-25ns-V1-standalone-loose")>6) ){
+     //     if ( (el.pt()>20) &&  ( abs(el.eta())<2.5 )  && (el.electronID("cutBasedElectronID-Spring15-25ns-V1-standalone-loose")>6) ){
+     //if ( (el.pt()>20) &&  ( abs(el.eta())<2.5 )  && (el.electronID("egmGsfElectronIDs:cutBasedElectronID-Summer16-80X-V1-loose")>6) ){
+     //    if ( (el.pt()>20) &&  ( abs(el.eta())<2.5 )  && (el.electronID("cutBasedElectronID-Summer16-80X-V1-loose")>6) ){
      bool isPassEleId  = (*ele_id_decisions)[el];
      if ( (el->pt()>20) &&  ( abs(el->eta())<2.5 )  && isPassEleId ){
        //     if ( (el.pt()>20) &&  ( abs(el.eta())<2.5 )  && (el.electronID("egmGsfElectronIDs:cutBasedElectronID-Summer16-80X-V1-loose")>6) ){
@@ -1664,7 +1658,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
        EleIDPassed->push_back(1);}
      else {EleIDPassed->push_back(0);}
    }
-  //std::cout << "nLooseEle=" << nLooseEle << std::endl;
+   //  std::cout << "nLooseEle=" << nLooseEle << std::endl;
 
    //
    /*
@@ -2018,7 +2012,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
    }
 
-   //std::cout << "nGoodTau=" << nGoodTau << std::endl;
+   //   std::cout << "nGoodTau=" << nGoodTau << std::endl;
    // In each event, the tau-ID scale factor is obtained using the first good tau //
    // This should be fine because in the end we select events with one good tau //
    if (!RunOnData) {
@@ -2083,7 +2077,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
    float met_E=met.energy();
    float recoil=0;
    float recoil_phi=0;
-   //std::cout <<  "MET " << met.pt() << " GeV.  px=" << met.px() << " py=" << met.py() << " pz=" << met.pz() << " energy=" << met.energy() << std::endl;
+   // std::cout <<  "MET " << met.pt() << " GeV.  px=" << met.px() << " py=" << met.py() << " pz=" << met.pz() << " energy=" << met.energy() << std::endl;
    // std::cout << "met_phi=" << met_phi << std::endl;
    if (mass>0) {
      TVector3 v1;  
@@ -2266,7 +2260,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 	   float DR_tau_nearestMu = DRTauMu(my_control_tau, v_muon); 
 	   h2_taueta_dRtaumu->Fill(tau_eta_CR[0],DR_tau_nearestMu,final_weight);
 	   hprof_taueta_dRtaumu->Fill(tau_eta_CR[0],DR_tau_nearestMu,final_weight);
-	   //  std::cout << "DR_tau_nearestMu=" << DR_tau_nearestMu << std::endl;
+	   // std::cout << "DR_tau_nearestMu=" << DR_tau_nearestMu << std::endl;
 	   if (DR_tau_nearestMu>0.1) {
 	     h1_recoil_CR->Fill(recoil,final_weight);
 	     h1_tauPt_CR->Fill(tau_pt_CR[0],final_weight);
@@ -2295,10 +2289,10 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
    //---------------//
    //---Selection---//
    //---------------//
-   // std::cout << "Proceed to selection cuts " << std::endl;
+   //  std::cout << "Proceed to selection cuts " << std::endl;
    if (passTauTrig && passAllMETFilters ) {
      if ( (nvtx>0) && (nTightMu==0) && (nLooseEle==0) ) {
-       //std::cout << "pt=" << tau_pt[0] << " met=" << met_val  <<   " pToverEtMiss_S2=" << pToverEtMiss_S2 << std::endl;
+       //      std::cout << "pt=" << tau_pt[0] << " met=" << met_val  <<   " pToverEtMiss_S2=" << pToverEtMiss_S2 << std::endl;
 
        //
        //** Stage 3 = Passed all other cuts, but pToverEtMiss cut not applied **//
@@ -2404,7 +2398,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
    
 	 //std::cout << "*Standard* dphi_tau_met=" << dphi_tau_met << std::endl;
 	 double MT=  sqrt(2*tau_pt[0]*met_val*(1- cos(dphi_tau_met)));
-	 //std::cout << "MT = " << MT << std::endl;
+	 // std::cout << "MT = " << MT << std::endl;
 	 if ( RunOnData && (MT>700.0) ) { 
 	   myfile << "#####\n\n " << sourceFileString << "  Event " << Event << "  Run " << Run <<  "\n" 
 		  << "  MT=" << MT << "  MET=" << met_val << "  MET_phi=" << met_phi 
@@ -2516,7 +2510,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 	 }
 
 	 //final_weight_trigSF_UP
-	 if (!RunOnData) {
+	 /*	 if (!RunOnData) {
 	   //	   std::cout << "final_weight_trigSF_UP " << final_weight_trigSF_UP << " final_weight_trigSF_DOWN " << final_weight_trigSF_DOWN << std::endl;
 	   h1_MT_Stage1_trigSFUp->Fill(MT,final_weight_trigSF_UP);
 	   h1_MT_Stage1_trigSFDown->Fill(MT,final_weight_trigSF_DOWN);
@@ -2564,7 +2558,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 	     h1_MT_Stage1_alphaDown->Fill(MT,final_weight_alpha_DOWN);
 
 	   }
-	 }
+	 } */
        }
        
        //--Systematics--//
@@ -2734,7 +2728,7 @@ void MiniAODAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
    if (passTauTrig) {
        if (doQCDAna) {
-	 //	  std::cout << "Call QCDAnalyse " << std::endl;
+	 // std::cout << "Call QCDAnalyse " << std::endl;
 	 QCDAnalyse(met);
        }
        //       std::cout << "nGoodTau=" << nGoodTau << std::endl;
@@ -3206,7 +3200,7 @@ MiniAODAnalyzer::endJob()
 {
   
   if (RunOnData) myfile.close();
-
+  /*
   if ( doPDFuncertainty) {
     for (int nb=0; nb<nbinMT; nb++) {
       double array[100] = {0.} ;
@@ -3228,7 +3222,7 @@ MiniAODAnalyzer::endJob()
       h1_MT_Stage1_pdfUncertDown->SetBinContent(nb,temp2);
       
     }
-  }
+  } */
 
   TFileDirectory CutFlowDir = fs->mkdir("CutFlowDir");
   TH1F *cutflow = CutFlowDir.make<TH1F>("cutflow", "cutflow", 11, 0, 10);
